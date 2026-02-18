@@ -80,8 +80,8 @@ export default function Register(){
                 <Text style={styles.buttonText}>Bora Alertar!</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/login")}>
-                <Text style={styles.buttonText}>Já Alerta? Entrar</Text>
+            <TouchableOpacity style={styles.buttonLogin} onPress={() => router.replace("/login")}>
+                <Text style={styles.btnText}>Já Alerta? Entrar</Text>
             </TouchableOpacity>
 
             

@@ -19,6 +19,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
     color: "#000000",
+    fontSize: 18,
     
   },
   button: {
@@ -31,11 +32,15 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#000000",
     fontWeight: "bold",
+    fontSize: 20,
   },
   link: {
     textAlign: "center",
     marginTop: 15,
     color: "#fff",
     fontWeight: "bold",
+    fontSize: 21,
   },
 });
+
+export default styles;

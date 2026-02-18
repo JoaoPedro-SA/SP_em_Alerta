@@ -1,9 +1,22 @@
-import { router } from "expo-router";
+import { router, useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "../styles/loginStyle";
+import { useState } from "react";
 
 export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const router = useRouter();
+
+  function handleLogin() {
+    if (email === 'admin@sp.com' && password === 'admin123'){
+      router.replace("/home");
+    } else {
+      alert("Credenciais inválidas. Tente novamente.");
+    }
+  }
+
   return (
     <LinearGradient 
       colors={["#0d0000", "#2b0000", "#5a3a00"]}    

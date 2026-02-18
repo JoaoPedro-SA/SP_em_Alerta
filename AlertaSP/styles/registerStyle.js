@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginBottom: 15,
+    fontSize: 19
   },
    button: {
     backgroundColor: "#FFD700",
@@ -29,10 +30,24 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#000000",
     fontWeight: "bold",
+    fontSize: 20,
   },
   backButton:{
     position: "absolute",
     top:  50,
     left: 20
+  },
+  buttonLogin:{
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  btnText:{
+    color: "#FFF",
+    fontWeight: "bold",
+    fontSize: 21,
   }
+
 });
+export default styles;
