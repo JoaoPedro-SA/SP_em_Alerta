@@ -1,4 +1,4 @@
-import { router, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "../styles/loginStyle";
@@ -11,7 +11,7 @@ export default function Login() {
 
   function handleLogin() {
     if (email === 'admin@sp.com' && password === 'admin123'){
-      router.replace("/home");
+      router.navigate("/home");
     } else {
       alert("Credenciais inválidas. Tente novamente.");
     }
@@ -23,10 +23,22 @@ export default function Login() {
     style={styles.container}>
       <Text style={styles.title}>SP em Alerta ⚠️</Text>
 
-      <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="#000000" />
-      <TextInput style={styles.input} placeholder="Senha" olderTextColor="#000000" secureTextEntry />
+      <TextInput style={styles.input} 
+      placeholder="E-mail" 
+      placeholderTextColor="#000000" 
+      value={email} 
+      onChangeText={setEmail} 
+      />
 
-      <TouchableOpacity style={styles.button}>
+      <TextInput style={styles.input} 
+      placeholder="Senha" 
+      placeholderTextColor="#000000" 
+      value={password}
+      onChangeText={setPassword}
+      secureTextEntry 
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Entrar</Text>
       </TouchableOpacity>
 

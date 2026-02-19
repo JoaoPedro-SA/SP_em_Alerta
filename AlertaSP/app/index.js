@@ -14,12 +14,12 @@ export default function Splash() {
         Animated.parallel([
       Animated.timing(scale, {
         toValue: 1,
-        duration: 1200,
+        duration: 1600,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 1200,
+        duration: 1600,
         useNativeDriver: true,
       }),
     ]).start();
