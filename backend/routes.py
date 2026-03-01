@@ -37,41 +37,39 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    # ===== ENVIO DE EMAIL (COMENTADO) =====
+    # ===== ENVIO DE EMAIL =====
+    token = generate_token(email)
+    link = url_for("auth.confirm_email", token=token, _external=True)
 
-    # token = generate_token(email)
-    # link = url_for("auth.confirm_email", token=token, _external=True)
+    msg = Message(
+        subject="Confirme seu email",
+        sender=current_app.config["MAIL_USERNAME"],
+        recipients=[email]
+    )
 
-    # msg = Message(
-    #     subject="Confirme seu email",
-    #     sender=current_app.config["MAIL_USERNAME"],
-    #     recipients=[email]
-    # )
+    msg.body = f"Clique no link para confirmar sua conta:\n{link}"
+    mail.send(msg)
 
-    # msg.body = f"Clique no link para confirmar sua conta:\n{link}"
-    # mail.send(msg)
+    return {"message": "Conta criada com sucesso e e-mail de confirmação enviado!"}, 201
 
-    return {"message": "Conta criada com sucesso!"}
+# ================== CONFIRM EMAIL ==================
 
+@auth_bp.route("/confirm/<token>")
+def confirm_email(token):
+    try:
+        email = confirm_token(token)
+    except:
+        return {"message": "Token inválido ou expirado"}, 400
 
-# ================== CONFIRM EMAIL (DESATIVADO) ==================
+    user = User.query.filter_by(email=email).first()
 
-# @auth_bp.route("/confirm/<token>")
-# def confirm_email(token):
-#     try:
-#         email = confirm_token(token)
-#     except:
-#         return {"message": "Token inválido ou expirado"}, 400
-#
-#     user = User.query.filter_by(email=email).first()
-#
-#     if not user:
-#         return {"message": "Usuário não encontrado"}, 404
-#
-#     user.is_verified = True
-#     db.session.commit()
-#
-#     return {"message": "Email confirmado com sucesso!"}
+    if not user:
+        return {"message": "Usuário não encontrado"}, 404
+
+    user.is_verified = True
+    db.session.commit()
+
+    return {"message": "Email confirmado com sucesso!"}
 
 
 # ================== LOGIN ==================
@@ -88,8 +86,8 @@ def login():
     if not user:
         return {"message": "Usuário não encontrado"}, 404
 
-    # if not user.is_verified:
-    #     return {"message": "Confirme seu email antes de logar"}, 403
+    if not user.is_verified:
+        return {"message": "Confirme seu email antes de logar"}, 403
 
     if not check_password_hash(user.password, password):
         return {"message": "Senha incorreta"}, 401
