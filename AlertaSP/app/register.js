@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import{ Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "../styles/registerStyle";
+import api from "./src/services/api";
 
 export default function Register(){
     const router = useRouter();
@@ -13,23 +14,35 @@ export default function Register(){
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
-    function handleRegister() {
-        if(!name || !email || !password || !confirmPassword){
-            Alert.alert("Erro", "Preencha todos os campos.");
-            return;
-        }
+async function handleRegister() {
+  if (!name || !email || !password || !confirmPassword) {
+    Alert.alert("Erro", "Preencha todos os campos.");
+    return;
+  }
 
-        if(password !== confirmPassword){
-            Alert.alert("Erro", "As senhas não coincidem.");
-            return;
-        }
+  if (password !== confirmPassword) {
+    Alert.alert("Erro", "As senhas não coincidem.");
+    return;
+  }
 
-        //integrar backend
-        Alert.alert("Sucesso", "Conta criada com sucesso!");
+  try {
+    await api.post("/register", {
+      name,
+      email,
+      password,
+    });
 
-        router.replace("/login");
+    Alert.alert("Sucesso", "Conta criada com sucesso!");
+    router.replace("/login");
 
-    }
+  } catch (error) {
+    Alert.alert(
+      "Erro",
+      error.response?.data?.message ||
+      "Erro ao registrar."
+    );
+  }
+}
     return(
         <LinearGradient 
          colors={["#0d0000", "#2b0000", "#5a3a00"]}

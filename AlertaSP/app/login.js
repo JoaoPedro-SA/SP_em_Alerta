@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
+import api from "./src/services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "../styles/loginStyle";
 import { useState } from "react";
@@ -9,13 +10,23 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const router = useRouter();
 
-  function handleLogin() {
-    if (email === 'admin@sp.com' && password === 'admin123'){
-      router.navigate("/home");
-    } else {
-      alert("Credenciais inválidas. Tente novamente.");
-    }
+async function handleLogin() {
+  try {
+    const response = await api.post("/login", {
+      email,
+      password,
+    });
+
+    // se backend retornar sucesso
+    router.replace("/home");
+
+  } catch (error) {
+    alert(
+      error.response?.data?.message ||
+      "Erro ao conectar com o servidor."
+    );
   }
+}
 
   return (
     <LinearGradient 
