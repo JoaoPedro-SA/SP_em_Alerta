@@ -101,6 +101,45 @@ def verify_otp():
 
     return {"message": "E-mail confirmado com sucesso! Agora você pode fazer login."}, 200
 
+# Reenvio 
+
+@auth_bp.route("/resend-otp", methods=["POST"])
+def resend_otp():
+    data = request.json
+    email = data.get("email")
+
+    if not email:
+        return {"message": "E-mail é necessário"}, 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return {"message": "Usuário não encontrado"}, 404
+
+    # Gerar novo OTP
+    otp = generate_otp_code()
+    expiry = datetime.utcnow() + timedelta(minutes=10)
+
+    # Atualizar no banco
+    user.otp_code = otp
+    user.otp_expiry = expiry
+    db.session.commit()
+
+    # Enviar email
+    msg = Message(
+        subject="Novo código de verificação OTP",
+        sender=current_app.config["MAIL_USERNAME"],
+        recipients=[email]
+    )
+
+    msg.body = f"Seu novo código de confirmação é: {otp}\nEle expira em 10 minutos."
+    
+    try:
+        mail.send(msg)
+    except Exception as e:
+        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+
+    return {"message": "Novo código enviado com sucesso!"}, 200
 
 # ================== LOGIN ==================
 
