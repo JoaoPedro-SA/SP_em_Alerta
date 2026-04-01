@@ -92,7 +92,7 @@ def register():
   <div style="max-width: 500px; margin: auto; background: #ffffff; border-radius: 12px; padding: 30px; text-align: center;">
 
     <h2 style="color: #e53935; margin-bottom: 10px;">
-      AlertaSP
+      SP EM ALERTA
     </h2>
 
     <p style="color: #333; font-size: 16px;">
