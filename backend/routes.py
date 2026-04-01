@@ -50,20 +50,103 @@ def register():
     db.session.commit()
 
     # ===== ENVIO DO CÓDIGO POR EMAIL =====
+    # msg = Message(
+    #     subject="Seu código de verificação OTP",
+    #     sender=current_app.config["MAIL_USERNAME"],
+    #     recipients=[email]
+    # )
+
+    # msg.body = f"Seu código de confirmação é: {otp}\nEle expira em 10 minutos."
+    
+    # try:
+    #     mail.send(msg)
+    # except Exception as e:
+    #     return {"message": "Erro ao enviar e-mail, mas conta criada.", "error": str(e)}, 500
+
+    # return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+
+    # ===== ENVIO DO CÓDIGO POR EMAIL =====
     msg = Message(
-        subject="Seu código de verificação OTP",
+        subject="🔐 Seu código de verificação - AlertaSP",
         sender=current_app.config["MAIL_USERNAME"],
         recipients=[email]
     )
 
-    msg.body = f"Seu código de confirmação é: {otp}\nEle expira em 10 minutos."
-    
+    # Versão texto (fallback)
+    msg.body = f"""
+    Olá,
+
+    Seu código de verificação é: {otp}
+
+    Ele expira em 10 minutos.
+
+    Se você não solicitou este código, ignore este e-mail.
+
+    Atenciosamente,  
+    Equipe AlertaSP
+    """
+
+    # Versão HTML (principal)
+    msg.html = f"""
+<div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 40px 0;">
+  <div style="max-width: 500px; margin: auto; background: #ffffff; border-radius: 12px; padding: 30px; text-align: center;">
+
+    <h2 style="color: #e53935; margin-bottom: 10px;">
+      AlertaSP
+    </h2>
+
+    <p style="color: #333; font-size: 16px;">
+      Olá,
+    </p>
+
+    <p style="color: #555; font-size: 15px;">
+      Use o código abaixo para confirmar sua conta:
+    </p>
+
+    <div style="margin: 30px 0;">
+      <span style="
+        display: inline-block;
+        font-size: 32px;
+        letter-spacing: 6px;
+        font-weight: bold;
+        color: #ffffff;
+        background: #000000;
+        padding: 15px 25px;
+        border-radius: 10px;
+      ">
+        {otp}
+      </span>
+    </div>
+
+    <p style="color: #777; font-size: 14px;">
+      ⏳ Este código expira em <strong>10 minutos</strong>.
+    </p>
+
+    <p style="color: #e53935; font-size: 14px;">
+      ⚠️ Nunca compartilhe este código com ninguém.
+    </p>
+
+    <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
+
+    <p style="color: #999; font-size: 13px;">
+      Se você não solicitou este código, ignore este e-mail.
+    </p>
+
+    <p style="color: #bbb; font-size: 12px; margin-top: 20px;">
+      © 2026 AlertaSP
+    </p>
+
+  </div>
+</div>
+"""
+
     try:
         mail.send(msg)
     except Exception as e:
         return {"message": "Erro ao enviar e-mail, mas conta criada.", "error": str(e)}, 500
 
     return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+
 
 
 # ================== VERIFICAR OTP ==================
