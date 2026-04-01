@@ -83,7 +83,7 @@ def register():
     Se você não solicitou este código, ignore este e-mail.
 
     Atenciosamente,  
-    Equipe AlertaSP
+    Equipe SPAlerta
     """
 
     # Versão HTML (principal)
