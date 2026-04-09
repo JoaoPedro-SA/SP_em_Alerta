@@ -245,3 +245,40 @@ def login():
         return {"message": "Senha incorreta"}, 401
 
     return {"message": "Login realizado com sucesso", "user_id": user.id}
+
+from flask import request, jsonify
+from .models import Alert
+from .extensions import db
+
+
+@auth_bp.route("/alert", methods=["POST"])
+def create_alert():
+    data = request.get_json()
+
+    alert = Alert(
+        latitude=data['latitude'],
+        longitude=data['longitude'],
+        title=data.get('title', 'Alerta'),
+        description=data.get('description')
+    )
+
+    db.session.add(alert)
+    db.session.commit()
+    return {"message": "Alerta criado com sucesso"}
+
+
+@auth_bp.route("/alert", methods=["GET"])
+def get_alerts():
+    alerts = Alert.query.all()
+
+    result = []
+    for alert in alerts:
+        result.append({
+            "id": alert.id,
+            "latitude": alert.latitude,
+            "longitude": alert.longitude,
+            "title": alert.title,
+            "description": alert.description
+        })
+
+    return (result)
