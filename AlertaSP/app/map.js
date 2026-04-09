@@ -5,11 +5,23 @@ import * as Location from "expo-location";
 
 
 export default function Map() {
+  const [alerts, setAlerts] = useState([]);
   const [location, setLocation] = useState(null);
 
   useEffect(() => {
     getLocation();
+    fetchAlerts();
   }, []);
+
+  async function fetchAlerts() {
+  try {
+    const response = await fetch("http://172.18.40.4:5001/alert");
+    const data = await response.json();
+    setAlerts(data);
+  } catch (error) {
+    console.log("Erro ao buscar alerts:", error);
+  }
+}
 
   async function getLocation() {
     // Pedir permissão
@@ -49,6 +61,19 @@ export default function Map() {
         }}
         title="Você está aqui"
       />
+
+      {alerts.map((alert) => (
+    <Marker
+      key={alert.id}
+      coordinate={{
+        latitude: alert.latitude,
+        longitude: alert.longitude,
+      }}
+      title={alert.title}
+      description={alert.description}
+      pinColor="blue"
+    />
+  ))}
     </MapView>
   );
 }
