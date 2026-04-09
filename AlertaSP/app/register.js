@@ -29,12 +29,15 @@ export default function Register() {
         setLoading(true);
 
         try {
+            console.log("Enviando dados para registro:", { name, email, password: "***" });
 
             const response = await api.post("/register", {
                 name,
                 email,
                 password,
             });
+
+            console.log("Resposta do servidor:", response.status, response.data);
 
             if (response.status === 201) {
                 Alert.alert(
@@ -44,7 +47,7 @@ export default function Register() {
                         {
                             text: "OK",
                             onPress: () => {
-
+                                console.log("Redirecionando para OTP com email:", email);
                                 router.push({
                                     pathname: "/otp_verify",
                                     params: { email: email }
@@ -56,7 +59,9 @@ export default function Register() {
             }
 
         } catch (error) {
-            console.log("Erro detalhado:", error.response?.data);
+            console.log("Erro detalhado:", error);
+            console.log("Erro response:", error.response);
+            console.log("Erro response data:", error.response?.data);
 
 
             if (error.response?.status === 400) {
@@ -85,7 +90,7 @@ export default function Register() {
                 );
             }
         } finally {
-            setLoading(false);
+            setLoading(true);
         }
     }
 

@@ -23,6 +23,7 @@ def register():
 
     email = data.get("email")
     password = data.get("password")
+    name = data.get("name")
 
     if not email or not password:
         return {"message": "Email e senha são obrigatórios"}, 400
@@ -41,6 +42,7 @@ def register():
     new_user = User(
         email=email, 
         password=hashed_password,
+        name=name,
         otp_code=otp,
         otp_expiry=expiry,
         is_verified=False
@@ -282,3 +284,11 @@ def get_alerts():
         })
 
     return (result)
+
+@auth_bp.route("/reset-db", methods=["POST"])
+def reset_db():
+    # Rota para apagar todos os registros do banco de dados (uso de desenvolvimento)
+    db.session.execute(Alert.__table__.delete())
+    db.session.execute(User.__table__.delete())
+    db.session.commit()
+    return {"message": "Banco de dados limpo com sucesso."}, 200
