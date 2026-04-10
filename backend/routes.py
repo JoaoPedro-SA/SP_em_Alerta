@@ -19,77 +19,62 @@ def generate_otp_code():
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
-    data = request.json
+    try:
+        data = request.json
 
-    email = data.get("email")
-    password = data.get("password")
-    name = data.get("name")
+        email = data.get("email")
+        password = data.get("password")
+        name = data.get("name")
 
-    if not email or not password:
-        return {"message": "Email e senha são obrigatórios"}, 400
+        if not email or not password:
+            return {"message": "Email e senha são obrigatórios"}, 400
 
-    if User.query.filter_by(email=email).first():
-        return {"message": "Email já cadastrado"}, 400
+        if User.query.filter_by(email=email).first():
+            return {"message": "Email já cadastrado"}, 400
 
-    # Criar hash da senha
-    hashed_password = generate_password_hash(password)
-    
-    # Gerar OTP e Tempo de Expiração (10 minutos)
-    otp = generate_otp_code()
-    expiry = datetime.utcnow() + timedelta(minutes=10)
+        # Criar hash da senha
+        hashed_password = generate_password_hash(password)
+        
+        # Gerar OTP e Tempo de Expiração (10 minutos)
+        otp = generate_otp_code()
+        expiry = datetime.utcnow() + timedelta(minutes=10)
 
-    # Criar usuário (Certifique-se que seu Model tem os campos otp_code e otp_expiry)
-    new_user = User(
-        email=email, 
-        password=hashed_password,
-        name=name,
-        otp_code=otp,
-        otp_expiry=expiry,
-        is_verified=False
-    )
-    
-    db.session.add(new_user)
-    db.session.commit()
+        # Criar usuário
+        new_user = User(
+            email=email, 
+            password=hashed_password,
+            name=name,
+            otp_code=otp,
+            otp_expiry=expiry,
+            is_verified=False
+        )
+        
+        db.session.add(new_user)
+        db.session.commit()
 
-    # ===== ENVIO DO CÓDIGO POR EMAIL =====
-    # msg = Message(
-    #     subject="Seu código de verificação OTP",
-    #     sender=current_app.config["MAIL_USERNAME"],
-    #     recipients=[email]
-    # )
+        # ===== ENVIO DO CÓDIGO POR EMAIL =====
+        msg = Message(
+            subject="🔐 Seu código de verificação - AlertaSP",
+            sender=current_app.config["MAIL_USERNAME"],
+            recipients=[email]
+        )
 
-    # msg.body = f"Seu código de confirmação é: {otp}\nEle expira em 10 minutos."
-    
-    # try:
-    #     mail.send(msg)
-    # except Exception as e:
-    #     return {"message": "Erro ao enviar e-mail, mas conta criada.", "error": str(e)}, 500
+        # Versão texto (fallback)
+        msg.body = f"""
+Olá,
 
-    # return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+Seu código de verificação é: {otp}
 
-    # ===== ENVIO DO CÓDIGO POR EMAIL =====
-    msg = Message(
-        subject="🔐 Seu código de verificação - AlertaSP",
-        sender=current_app.config["MAIL_USERNAME"],
-        recipients=[email]
-    )
+Ele expira em 10 minutos.
 
-    # Versão texto (fallback)
-    msg.body = f"""
-    Olá,
+Se você não solicitou este código, ignore este e-mail.
 
-    Seu código de verificação é: {otp}
+Atenciosamente,  
+Equipe SPAlerta
+"""
 
-    Ele expira em 10 minutos.
-
-    Se você não solicitou este código, ignore este e-mail.
-
-    Atenciosamente,  
-    Equipe SPAlerta
-    """
-
-    # Versão HTML (principal)
-    msg.html = f"""
+        # Versão HTML (principal)
+        msg.html = f"""
 <div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 40px 0;">
   <div style="max-width: 500px; margin: auto; background: #ffffff; border-radius: 12px; padding: 30px; text-align: center;">
 
@@ -142,12 +127,19 @@ def register():
 </div>
 """
 
-    try:
-        mail.send(msg)
-    except Exception as e:
-        return {"message": "Erro ao enviar e-mail, mas conta criada.", "error": str(e)}, 500
+        try:
+            mail.send(msg)
+            print(f"✅ Email enviado com sucesso para {email}")
+        except Exception as e:
+            print(f"⚠️ Erro ao enviar email para {email}: {str(e)}")
+            # Continua mesmo se o email falhar - o usuário já foi criado
 
-    return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+        return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+
+    except Exception as e:
+        print(f"❌ Erro no registro: {str(e)}")
+        db.session.rollback()
+        return {"message": f"Erro ao criar conta: {str(e)}"}, 500
 
 
 
@@ -159,31 +151,34 @@ def verify_otp():
     email = data.get("email")
     otp_input = data.get("otp")
 
+    print(f"[verify_otp] recebido email={email} otp={otp_input}")
+
     if not email or not otp_input:
         return {"message": "E-mail e código são necessários"}, 400
 
     user = User.query.filter_by(email=email).first()
 
     if not user:
+        print(f"[verify_otp] usuário não encontrado: {email}")
         return {"message": "Usuário não encontrado"}, 404
 
-    # 1. Verificar se já está verificado
     if user.is_verified:
+        print(f"[verify_otp] usuário já verificado: {email}")
         return {"message": "Este e-mail já foi verificado anteriormente."}, 200
 
-    # 2. Verificar se o código expirou
     if datetime.utcnow() > user.otp_expiry:
+        print(f"[verify_otp] código expirado para {email}: otp_expiry={user.otp_expiry}")
         return {"message": "O código expirou. Solicite um novo."}, 400
 
-    # 3. Comparar os códigos
     if user.otp_code != otp_input:
+        print(f"[verify_otp] código inválido para {email}: esperado={user.otp_code}, recebido={otp_input}")
         return {"message": "Código inválido"}, 400
 
-    # Sucesso: Ativa o usuário e limpa o código do banco
     user.is_verified = True
-    user.otp_code = None 
+    user.otp_code = None
     db.session.commit()
 
+    print(f"[verify_otp] verificação concluída para {email}")
     return {"message": "E-mail confirmado com sucesso! Agora você pode fazer login."}, 200
 
 # Reenvio 
@@ -193,24 +188,26 @@ def resend_otp():
     data = request.json
     email = data.get("email")
 
+    print(f"[resend_otp] recebido email={email}")
+
     if not email:
         return {"message": "E-mail é necessário"}, 400
 
     user = User.query.filter_by(email=email).first()
 
     if not user:
+        print(f"[resend_otp] usuário não encontrado: {email}")
         return {"message": "Usuário não encontrado"}, 404
 
-    # Gerar novo OTP
     otp = generate_otp_code()
     expiry = datetime.utcnow() + timedelta(minutes=10)
 
-    # Atualizar no banco
     user.otp_code = otp
     user.otp_expiry = expiry
     db.session.commit()
 
-    # Enviar email
+    print(f"[resend_otp] novo OTP gerado para {email}: {otp}")
+
     msg = Message(
         subject="Novo código de verificação OTP",
         sender=current_app.config["MAIL_USERNAME"],
@@ -221,7 +218,9 @@ def resend_otp():
     
     try:
         mail.send(msg)
+        print(f"[resend_otp] email enviado para {email}")
     except Exception as e:
+        print(f"[resend_otp] erro ao enviar email para {email}: {e}")
         return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
 
     return {"message": "Novo código enviado com sucesso!"}, 200

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -15,14 +15,25 @@ export default function Register() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
 
+    function showAlert(title, message, buttons) {
+        if (Platform.OS === "web") {
+            window.alert(`${title}\n\n${message}`);
+            if (buttons && buttons[0]?.onPress) {
+                buttons[0].onPress();
+            }
+        } else {
+            Alert.alert(title, message, buttons);
+        }
+    }
+
     async function handleRegister() {
         if (!name || !email || !password || !confirmPassword) {
-            Alert.alert("Erro", "Preencha todos os campos.");
+            showAlert("Erro", "Preencha todos os campos.");
             return;
         }
 
         if (password !== confirmPassword) {
-            Alert.alert("Erro", "As senhas não coincidem.");
+            showAlert("Erro", "As senhas não coincidem.");
             return;
         }
 
@@ -40,7 +51,8 @@ export default function Register() {
             console.log("Resposta do servidor:", response.status, response.data);
 
             if (response.status === 201) {
-                Alert.alert(
+                setLoading(false);
+                showAlert(
                     "Sucesso",
                     "Conta criada! Verifique seu e-mail para confirmar o cadastro.",
                     [
@@ -59,14 +71,22 @@ export default function Register() {
             }
 
         } catch (error) {
-            console.log("Erro detalhado:", error);
-            console.log("Erro response:", error.response);
-            console.log("Erro response data:", error.response?.data);
+            console.error("❌ ERRO NO CADASTRO:");
+            console.error("Error object:", error);
+            console.error("Error message:", error.message);
+            console.error("Error response:", error.response);
+            console.error("Error response status:", error.response?.status);
+            console.error("Error response data:", error.response?.data);
 
-
-            if (error.response?.status === 400) {
+            // Verifica se é erro de conexão
+            if (!error.response) {
+                showAlert(
+                    "Erro de Conexão",
+                    "Não conseguimos conectar ao servidor. Verifique sua internet e tente novamente."
+                );
+            } else if (error.response?.status === 400) {
                 if (error.response?.data?.message === "Email já cadastrado") {
-                    Alert.alert(
+                    showAlert(
                         "Email já cadastrado",
                         "Este email já possui cadastro. Deseja fazer login?",
                         [
@@ -81,16 +101,21 @@ export default function Register() {
                         ]
                     );
                 } else {
-                    Alert.alert("Erro", error.response?.data?.message || "Erro no cadastro.");
+                    showAlert("Erro", error.response?.data?.message || "Erro no cadastro.");
                 }
+            } else if (error.response?.status === 500) {
+                showAlert(
+                    "Erro no servidor",
+                    error.response?.data?.message || "Erro ao processar o cadastro no servidor."
+                );
             } else {
-                Alert.alert(
+                showAlert(
                     "Erro",
-                    error.response?.data?.message || "Erro ao conectar com o servidor."
+                    error.response?.data?.message || error.message || "Erro desconhecido ao conectar com o servidor."
                 );
             }
         } finally {
-            setLoading(true);
+            setLoading(false);
         }
     }
 
