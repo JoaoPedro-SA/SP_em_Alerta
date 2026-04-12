@@ -8,6 +8,7 @@ export default function OtpVerify() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { email } = params;
+    const [hover, setHover] = useState(false);
 
     const { width } = useWindowDimensions();
     const isDesktop = width > 768;
@@ -143,6 +144,7 @@ export default function OtpVerify() {
                     width: "100%",
                     maxWidth: isDesktop ? 420 : "100%",
                     alignSelf: "center",
+                    alignContent: "center",
                     padding: 20,
                     backgroundColor: "rgba(255,255,255,0.00)",
                     borderRadius: isDesktop ? 10 : 0,

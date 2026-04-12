@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, useWindowDimensions } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Platform, useWindowDimensions } from "react-native";
 import api from "./src/services/api";
 import { LinearGradient } from "expo-linear-gradient";
 import styles from "../styles/loginStyle";
