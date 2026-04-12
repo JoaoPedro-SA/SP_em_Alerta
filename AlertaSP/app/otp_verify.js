@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Text, TextInput, TouchableOpacity, Alert, Platform, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, Platform, StyleSheet, ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from './src/services/api';
@@ -8,6 +8,10 @@ export default function OtpVerify() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { email } = params;
+
+    const { width } = useWindowDimensions();
+    const isDesktop = width > 768;
+    const isWeb = Platform.OS === "web";
 
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
@@ -134,55 +138,81 @@ export default function OtpVerify() {
             colors={["#0d0000", "#2b0000", "#5a3a00"]}
             style={styles.container}
         >
-            <Text style={styles.title}>Verificação de E-mail</Text>
-            <Text style={styles.subtitle}>Digite o código enviado para:</Text>
-            <Text style={styles.emailText}>{email || 'seu@email.com'}</Text>
-
-            <Text style={styles.timerText}>
-                Tempo restante: {formatTime(timeLeft)}
-            </Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="000000"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={otp}
-                onChangeText={setOtp}
-                editable={!loading}
-            />
-
-            <TouchableOpacity
-                style={[styles.button, loading && styles.buttonDisabled]}
-                onPress={handleVerify}
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="#000" />
-                ) : (
-                    <Text style={styles.buttonText}>Confirmar Código</Text>
-                )}
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                onPress={handleResendCode}
-                disabled={!canResend || loading}
+            <View
+                style={{
+                    width: "100%",
+                    maxWidth: isDesktop ? 420 : "100%",
+                    alignSelf: "center",
+                    padding: 20,
+                    backgroundColor: "rgba(255,255,255,0.00)",
+                    borderRadius: isDesktop ? 10 : 0,
+                    borderWidth: isDesktop ? 1 : 0,
+                    borderColor: "rgba(255,255,255,0.0)",
+                    ...(isWeb && {
+                        backdropFilter: "blur(10px)",
+                    }),
+                }}
             >
                 <Text style={[
-                    styles.resendText,
-                    (!canResend || loading) && styles.resendDisabled
+                    styles.title,
+                    { fontSize: isDesktop ? 26 : 22 }
                 ]}>
-                    Reenviar código
+                    Verificação de E-mail
                 </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-                onPress={() => router.replace("/login")}
-                disabled={loading}
-            >
-                <Text style={styles.linkText}>Voltar para Login</Text>
-            </TouchableOpacity>
+                <Text style={styles.subtitle}>Código enviado para:</Text>
+                <Text style={styles.emailText}>{email}</Text>
+
+                <Text style={styles.timerText}>
+                    Tempo restante: {formatTime(timeLeft)}
+                </Text>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="000000"
+                    placeholderTextColor="#999"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={otp}
+                    onChangeText={setOtp}
+                />
+
+                <TouchableOpacity
+                    style={[
+                        styles.button,
+                        hover && isWeb ? { opacity: 0.8 } : null,
+                        loading && styles.buttonDisabled
+                    ]}
+                    onMouseEnter={isWeb ? () => setHover(true) : null}
+                    onMouseLeave={isWeb ? () => setHover(false) : null}
+                    onPress={handleVerify}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#000" />
+                    ) : (
+                        <Text style={styles.buttonText}>Confirmar Código</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={handleResendCode}
+                    disabled={!canResend || loading}
+                >
+                    <Text style={[
+                        styles.resendText,
+                        (!canResend || loading) && styles.resendDisabled
+                    ]}>
+                        Reenviar código
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={() => router.replace("/login")}
+                >
+                    <Text style={styles.linkText}>Voltar para Login</Text>
+                </TouchableOpacity>
+            </View>
         </LinearGradient>
     );
 }

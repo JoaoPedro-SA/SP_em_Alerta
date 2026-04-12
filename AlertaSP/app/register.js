@@ -117,9 +117,9 @@ export default function Register() {
       >
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.push("/login")}
         >
-          <Ionicons name="arrow-back-circle" size={28} color="#fff" />
+          <Ionicons name="arrow-back-circle" size={50} color="#fff" />
         </TouchableOpacity>
 
         <Text style={[
@@ -184,7 +184,7 @@ export default function Register() {
 
         <TouchableOpacity
           style={styles.buttonLogin}
-          onPress={() => router.replace("/login")}
+          onPress={() => router.push("/login")}
           disabled={loading}
         >
           <Text style={styles.btnText}>Já Alerta? Entrar</Text>
