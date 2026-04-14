@@ -4,7 +4,7 @@ load_dotenv()
 
 from flask import Flask
 from .extensions import db, mail
-from .routes import auth_bp
+from .routes import auth_bp, api_bp
 
 def create_app():
     app = Flask(__name__)
@@ -14,6 +14,7 @@ def create_app():
     mail.init_app(app)
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(api_bp)
 
     with app.app_context():
         db.create_all()

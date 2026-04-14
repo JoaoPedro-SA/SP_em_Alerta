@@ -16,5 +16,16 @@ class Alert(db.Model):
     longitude = db.Column(db.Float, nullable=False)
     title = db.Column(db.String(100), default="Alerta")
     description = db.Column(db.String(255))
+    severity = db.Column(db.String(20))
+    type = db.Column(db.String(50))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+class News(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150))
+    content = db.Column(db.Text)
+    image_url = db.Column(db.String(255))
+    source = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))

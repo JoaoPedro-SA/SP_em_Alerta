@@ -5,9 +5,10 @@ from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from .extensions import db, mail
-from .models import User
+from .models import User, News
 
 auth_bp = Blueprint("auth", __name__)
+api_bp = Blueprint("api",__name__)
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -251,14 +252,18 @@ from flask import request, jsonify
 from .models import Alert
 from .extensions import db
 
+# ================== Alert ==================
 
-@auth_bp.route("/alert", methods=["POST"])
+
+@api_bp.route("/alerts", methods=["POST"])
 def create_alert():
     data = request.get_json()
 
     alert = Alert(
         latitude=data['latitude'],
         longitude=data['longitude'],
+        type=data.get('type'),
+        severity=data.get('severity', 'medio'),
         title=data.get('title', 'Alerta'),
         description=data.get('description')
     )
@@ -268,22 +273,71 @@ def create_alert():
     return {"message": "Alerta criado com sucesso"}
 
 
-@auth_bp.route("/alert", methods=["GET"])
+@api_bp.route("/alerts", methods=["GET"])
 def get_alerts():
-    alerts = Alert.query.all()
+    alerts = Alert.query.order_by(Alert.created_at.desc()).all()
 
     result = []
-    for alert in alerts:
+    for a in alerts:
         result.append({
-            "id": alert.id,
-            "latitude": alert.latitude,
-            "longitude": alert.longitude,
-            "title": alert.title,
-            "description": alert.description
+            "id": a.id,
+            "latitude": a.latitude,
+            "longitude": a.longitude,
+            "type":a.type,
+            "severity":a.severity,
+            "title": a.title,
+            "description": a.description,
+            "created_at":a.created_at
         })
 
-    return (result)
+    return jsonify(result)
 
+#  ================ News ================
+@api_bp.route('/news', methods=['GET'])
+def get_news():
+    news = News.query.order_by(News.created_at.desc()).all()
+    return jsonify([{
+        "id": n.id,
+        "title": n.title,
+        "content": n.content,
+        "image_url": n.image_url,
+        "source": n.source,
+        "created_at": n.created_at
+    } for n in news])
+# ================ Feed ================
+@api_bp.route('/feed', methods=['GET'])
+def get_feed():
+    alerts = Alert.query.order_by(Alert.created_at.desc()).limit(10).all()
+    news = News.query.order_by(News.created_at.desc()).limit(10).all()
+    
+    combined = []
+    
+    for a in alerts:
+        combined.append({
+            "type": "alert",
+            "id": a.id,
+            "title": a.title,
+            "description": a.description,
+            "latitude": a.latitude,
+            "longitude": a.longitude,
+            "severity": a.severity,
+            "created_at": a.created_at
+        })
+        
+    for n in news:
+        combined.append({
+            "type": "news",
+            "id": n.id,
+            "title": n.title,
+            "content": n.content,
+            "image_url": n.image_url,
+            "created_at": n.created_at
+        })
+        
+    combined.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    return jsonify(combined)
+#  ================ Reset DB ================
 @auth_bp.route("/reset-db", methods=["POST"])
 def reset_db():
     # Rota para apagar todos os registros do banco de dados (uso de desenvolvimento)
