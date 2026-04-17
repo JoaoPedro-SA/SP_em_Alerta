@@ -317,6 +317,7 @@ def get_news():
     noticias = query.order_by(News.created_at.desc()).limit(10).all()
 
     return jsonify([n.to_dict() for n in noticias]), 200
+
 @auth_bp.route("/reset-db", methods=["POST"])
 def reset_db():
     # Rota para apagar todos os registros do banco de dados (uso de desenvolvimento)
