@@ -305,18 +305,18 @@ def create_news():
 def get_news():
     nivel = request.args.get("nivel")
     regiao = request.args.get("regiao")
-    
-    query = News.query
-    
-    if nivel:
-        query = query.filter_by(nivel=nivel)
-    
-    if regiao:
-        query = query.filter_by(regiao=regiao)
-        
-    noticias = query.order_by(News.created_at.desc()).all()
-    return jsonify([n.to_dict() for n in noticias])
 
+    query = News.query
+
+    if nivel:
+        query = query.filter(News.nivel.ilike(f"%{nivel}%"))
+
+    if regiao:
+        query = query.filter(News.regiao.ilike(f"%{regiao}%"))
+
+    noticias = query.order_by(News.created_at.desc()).limit(10).all()
+
+    return jsonify([n.to_dict() for n in noticias]), 200
 @auth_bp.route("/reset-db", methods=["POST"])
 def reset_db():
     # Rota para apagar todos os registros do banco de dados (uso de desenvolvimento)
