@@ -5,7 +5,7 @@ from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from .extensions import db, mail
-from .models import User
+from .models import User,Alert,News
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -283,6 +283,39 @@ def get_alerts():
         })
 
     return (result)
+
+@auth_bp.route("/news" , methods=["POST"])
+def create_news():
+    data = request.get_json()
+    
+    news = News(
+        titulo=data["titulo"],
+        descricao=data["descricao"],
+        nivel=data["nivel"],
+        regiao=data["regiao"],
+        fonte=data.get("fonte", "Sistema")
+    )
+    
+    db.session.add(news)
+    db.session.commit()
+    
+    return jsonify({"message":"Notícia criada com sucesso"}), 201
+
+@auth_bp.route("/news", methods=["GET"])
+def get_news():
+    nivel = request.args.get("nivel")
+    regiao = request.args.get("regiao")
+    
+    query = News.query
+    
+    if nivel:
+        query = query.filter_by(nivel=nivel)
+    
+    if regiao:
+        query = query.filter_by(regiao=regiao)
+        
+    noticias = query.order_by(News.created_at.desc()).all()
+    return jsonify([n.to_dict() for n in noticias])
 
 @auth_bp.route("/reset-db", methods=["POST"])
 def reset_db():

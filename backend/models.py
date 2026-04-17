@@ -18,3 +18,15 @@ class Alert(db.Model):
     description = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+
+class News(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(150), nullable=False)
+    descricao = db.Column(db.String(255), nullable=False)
+    nivel = db.Column(db.String(10), nullable=False)
+    regiao = db.Column(db.String(100), nullable=False)
+    fonte = db.Column(db.String(100), default='Sistema')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    
