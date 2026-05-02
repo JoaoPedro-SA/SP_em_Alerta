@@ -284,25 +284,65 @@ def get_alerts():
 
     return (result)
 
-@auth_bp.route("/news" , methods=["POST"])
-def create_news():
-    data = request.get_json()
+# ================== NOTÍCIAS ==================
+import requests
+
+API_KEY = "8401257d6b9742969102119696a8b007"
+
+def classificar(texto):
+    texto = texto.lower()
+
+    if any(p in texto for p in ["morte", "assalto", "crime", "tiroteio"]):
+        return "vermelho"
+
+    if any(p in texto for p in ["chuva", "alerta", "enchente"]):
+        return "amarelo"
+
+    return "verde"
+
+
+def buscar_e_salvar_noticias():
+    url = f"https://newsapi.org/v2/top-headlines?country=br&apiKey={API_KEY}"
     
-    news = News(
-        titulo=data["titulo"],
-        descricao=data["descricao"],
-        nivel=data["nivel"],
-        regiao=data["regiao"],
-        fonte=data.get("fonte", "Sistema")
-    )
-    
-    db.session.add(news)
+    response = requests.get(url)
+    data = response.json()
+
+    for n in data.get("articles", []):
+        titulo = n.get("title") or ""
+        descricao = n.get("description") or ""
+
+        texto = (titulo + descricao).lower()
+
+        # filtro SP
+        if "são paulo" not in texto:
+            continue
+
+        # evitar duplicado
+        existe = News.query.filter_by(titulo=titulo).first()
+        if existe:
+            continue
+
+        noticia = News(
+            titulo=titulo,
+            descricao=descricao,
+            nivel=classificar(texto),
+            regiao="São Paulo",
+            fonte=n.get("source", {}).get("name", "API")
+        )
+
+        db.session.add(noticia)
+
     db.session.commit()
-    
-    return jsonify({"message":"Notícia criada com sucesso"}), 201
+
+
 
 @auth_bp.route("/news", methods=["GET"])
 def get_news():
+    try:
+        buscar_e_salvar_noticias()
+    except Exception as e:
+        print("Erro ao buscar API:", e)
+
     nivel = request.args.get("nivel")
     regiao = request.args.get("regiao")
 
@@ -314,7 +354,7 @@ def get_news():
     if regiao:
         query = query.filter(News.regiao.ilike(f"%{regiao}%"))
 
-    noticias = query.order_by(News.created_at.desc()).limit(10).all()
+    noticias = query.order_by(News.created_at.desc()).limit(20).all()
 
     return jsonify([n.to_dict() for n in noticias]), 200
 
