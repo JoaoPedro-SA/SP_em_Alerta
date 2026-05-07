@@ -287,10 +287,6 @@ def get_alerts():
 
 @auth_bp.route("/news", methods=["GET"])
 def get_news():
-    try:
-        buscar_e_salvar_noticias()
-    except Exception as e:
-        print("Erro ao buscar API:", e)
 
     nivel = request.args.get("nivel")
     regiao = request.args.get("regiao")
