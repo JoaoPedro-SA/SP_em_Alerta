@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text, TextInput, TouchableOpacity, Alert, Platform, StyleSheet, ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from './src/services/api';
@@ -8,20 +8,38 @@ export default function OtpVerify() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { email } = params;
-    
+    const [hover, setHover] = useState(false);
+
+    const { width } = useWindowDimensions();
+    const isDesktop = width > 768;
+    const isWeb = Platform.OS === "web";
+
     const [otp, setOtp] = useState('');
     const [loading, setLoading] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(600); 
+    const [timeLeft, setTimeLeft] = useState(600);
     const [canResend, setCanResend] = useState(false);
 
+    function showAlert(title, message, buttons) {
+        if (Platform.OS === 'web') {
+            window.alert(`${title}\n\n${message}`);
+            if (buttons && buttons[0]?.onPress) {
+                buttons[0].onPress();
+            }
+        } else {
+            Alert.alert(title, message, buttons);
+        }
+    }
+
     useEffect(() => {
+        console.log('OTP verify screen loaded, email:', email);
+
         if (timeLeft > 0) {
             const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
             return () => clearTimeout(timer);
         } else {
             setCanResend(true);
         }
-    }, [timeLeft]);
+    }, [timeLeft, email]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -30,22 +48,31 @@ export default function OtpVerify() {
     };
 
     const handleVerify = async () => {
+        if (!email) {
+            showAlert("Erro", "E-mail não foi recebido corretamente. Volte ao login e tente novamente.");
+            return;
+        }
+
         if (otp.length !== 6) {
-            Alert.alert("Erro", "O código deve ter 6 dígitos.");
+            showAlert("Erro", "O código deve ter 6 dígitos.");
             return;
         }
 
         setLoading(true);
 
         try {
+            console.log('Enviando OTP para verificação:', { email, otp });
             const response = await api.post('/verify-otp', {
                 email: email,
                 otp: otp
             });
 
+            console.log('Resposta verify-otp:', response.status, response.data);
+
             if (response.status === 200) {
-                Alert.alert(
-                    "Sucesso", 
+                setLoading(false);
+                showAlert(
+                    "Sucesso",
                     "Email verificado com sucesso!",
                     [
                         {
@@ -56,20 +83,20 @@ export default function OtpVerify() {
                 );
             }
         } catch (error) {
-            console.log("Erro na verificação:", error.response?.data);
-            
+            console.error('Erro na verificação:', error);
+            console.error('Error response:', error.response);
+            console.error('Error response data:', error.response?.data);
+
             let errorMessage = "Erro ao verificar código.";
-            
+
             if (error.response) {
                 errorMessage = error.response.data?.message || errorMessage;
-                
-               
                 if (error.response.status === 400 && errorMessage.includes("expirado")) {
                     setCanResend(true);
                 }
             }
-            
-            Alert.alert("Erro", errorMessage);
+
+            showAlert("Erro", errorMessage);
         } finally {
             setLoading(false);
         }
@@ -77,81 +104,117 @@ export default function OtpVerify() {
 
     const handleResendCode = async () => {
         if (!canResend) return;
-        
+
+        if (!email) {
+            showAlert("Erro", "E-mail não foi recebido corretamente. Volte ao login e tente novamente.");
+            return;
+        }
+
         setLoading(true);
-        
+
         try {
+            console.log('Reenviando OTP para:', email);
             const response = await api.post('/resend-otp', {
                 email: email
             });
 
+            console.log('Resposta resend-otp:', response.status, response.data);
+
             if (response.status === 200) {
-                Alert.alert("Sucesso", "Novo código enviado para seu email!");
-                setTimeLeft(600); 
+                showAlert("Sucesso", "Novo código enviado para seu email!");
+                setTimeLeft(600);
                 setCanResend(false);
-                setOtp(''); 
+                setOtp('');
             }
         } catch (error) {
-            Alert.alert("Erro", error.response?.data?.message || "Erro ao reenviar código.");
+            console.error('Erro ao reenviar código:', error.response?.data || error);
+            showAlert("Erro", error.response?.data?.message || "Erro ao reenviar código.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <LinearGradient 
+        <LinearGradient
             colors={["#0d0000", "#2b0000", "#5a3a00"]}
             style={styles.container}
         >
-            <Text style={styles.title}>Verificação de E-mail</Text>
-            <Text style={styles.subtitle}>Digite o código enviado para:</Text>
-            <Text style={styles.emailText}>{email || 'seu@email.com'}</Text>
-            
-            <Text style={styles.timerText}>
-                Tempo restante: {formatTime(timeLeft)}
-            </Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="000000"
-                placeholderTextColor="#999"
-                keyboardType="number-pad"
-                maxLength={6}
-                value={otp}
-                onChangeText={setOtp}
-                editable={!loading}
-            />
-
-            <TouchableOpacity 
-                style={[styles.button, loading && styles.buttonDisabled]} 
-                onPress={handleVerify}
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="#000" />
-                ) : (
-                    <Text style={styles.buttonText}>Confirmar Código</Text>
-                )}
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-                onPress={handleResendCode}
-                disabled={!canResend || loading}
+            <View
+                style={{
+                    width: "100%",
+                    maxWidth: isDesktop ? 420 : "100%",
+                    alignSelf: "center",
+                    alignContent: "center",
+                    padding: 20,
+                    backgroundColor: "rgba(255,255,255,0.00)",
+                    borderRadius: isDesktop ? 10 : 0,
+                    borderWidth: isDesktop ? 1 : 0,
+                    borderColor: "rgba(255,255,255,0.0)",
+                    ...(isWeb && {
+                        backdropFilter: "blur(10px)",
+                    }),
+                }}
             >
                 <Text style={[
-                    styles.resendText,
-                    (!canResend || loading) && styles.resendDisabled
+                    styles.title,
+                    { fontSize: isDesktop ? 26 : 22 }
                 ]}>
-                    Reenviar código
+                    Verificação de E-mail
                 </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity 
-                onPress={() => router.replace("/login")}
-                disabled={loading}
-            >
-                <Text style={styles.linkText}>Voltar para Login</Text>
-            </TouchableOpacity>
+                <Text style={styles.subtitle}>Código enviado para:</Text>
+                <Text style={styles.emailText}>{email}</Text>
+
+                <Text style={styles.timerText}>
+                    Tempo restante: {formatTime(timeLeft)}
+                </Text>
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="000000"
+                    placeholderTextColor="#999"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    value={otp}
+                    onChangeText={setOtp}
+                />
+
+                <TouchableOpacity
+                    style={[
+                        styles.button,
+                        hover && isWeb ? { opacity: 0.8 } : null,
+                        loading && styles.buttonDisabled
+                    ]}
+                    onMouseEnter={isWeb ? () => setHover(true) : null}
+                    onMouseLeave={isWeb ? () => setHover(false) : null}
+                    onPress={handleVerify}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#000" />
+                    ) : (
+                        <Text style={styles.buttonText}>Confirmar Código</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={handleResendCode}
+                    disabled={!canResend || loading}
+                >
+                    <Text style={[
+                        styles.resendText,
+                        (!canResend || loading) && styles.resendDisabled
+                    ]}>
+                        Reenviar código
+                    </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={() => router.replace("/login")}
+                >
+                    <Text style={styles.linkText}>Voltar para Login</Text>
+                </TouchableOpacity>
+            </View>
         </LinearGradient>
     );
 }
