@@ -1,14 +1,11 @@
 import { useRouter } from "expo-router";
 import {
-    Text,
-    
-    TouchableOpacity,
-    View,
-    FlatList,
-    Image,
-    ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
+  FlatList,
+  Image,
 } from "react-native";
-
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -35,7 +32,6 @@ export default function Home() {
         } finally {
             setLoading(false);
         }
-    }
 
     useEffect(() => {
         fetchNews();
@@ -196,4 +192,4 @@ export default function Home() {
         </LinearGradient>
     );
 }
-
+}
