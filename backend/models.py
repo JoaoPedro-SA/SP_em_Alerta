@@ -27,16 +27,20 @@ class News(db.Model):
     nivel = db.Column(db.String(10), nullable=False)
     regiao = db.Column(db.String(100), nullable=False)
     fonte = db.Column(db.String(100), default='Sistema')
+    imagem = db.Column(db.String(500))
+    link = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-def to_dict(self):
-    return {
-        "id": self.id,
-        "titulo": self.titulo,
-        "descricao": self.descricao,
-        "nivel": self.nivel,
-        "regiao": self.regiao,
-        "fonte": self.fonte,
-        "data": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else None
-    }
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "titulo": self.titulo,
+            "descricao": self.descricao,
+            "nivel": self.nivel,
+            "regiao": self.regiao,
+            "fonte": self.fonte,
+            "imagem": self.imagem,
+            "link": self.link,
+            "data": self.created_at.strftime("%d/%m/%Y %H:%M") if self.created_at else None
+        }
 
     

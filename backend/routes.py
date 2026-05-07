@@ -283,23 +283,7 @@ def get_alerts():
         })
 
     return (result)
-
-@auth_bp.route("/news" , methods=["POST"])
-def create_news():
-    data = request.get_json()
-    
-    news = News(
-        titulo=data["titulo"],
-        descricao=data["descricao"],
-        nivel=data["nivel"],
-        regiao=data["regiao"],
-        fonte=data.get("fonte", "Sistema")
-    )
-    
-    db.session.add(news)
-    db.session.commit()
-    
-    return jsonify({"message":"Notícia criada com sucesso"}), 201
+# ===================NEWS==============
 
 @auth_bp.route("/news", methods=["GET"])
 def get_news():
