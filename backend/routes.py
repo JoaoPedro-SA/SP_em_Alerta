@@ -1,5 +1,9 @@
 import random
+import json
 from datetime import datetime, timedelta
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 from flask import Blueprint, request, current_app
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +12,7 @@ from .extensions import db, mail
 from .models import User,Alert,News
 
 auth_bp = Blueprint("auth", __name__)
+STREET_NAME_PLACEHOLDERS = {"Rua nao identificada", "Rua proxima nao encontrada"}
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -355,35 +360,188 @@ from .extensions import db
 
 @auth_bp.route("/alert", methods=["POST"])
 def create_alert():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
+
+    try:
+        latitude = float(data.get("latitude"))
+        longitude = float(data.get("longitude"))
+    except (TypeError, ValueError):
+        return jsonify({"message": "Latitude e longitude validas sao obrigatorias"}), 400
+
+    if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+        return jsonify({"message": "Coordenadas fora do intervalo permitido"}), 400
+
+    title = str(data.get("title") or "Alerta").strip() or "Alerta"
+    description = str(data.get("description") or "").strip()
+    street_name = str(data.get("street_name") or data.get("streetName") or "").strip()
+
+    if not description:
+        return jsonify({"message": "Escreva uma descricao para o alerta"}), 400
+
+    if len(title) > 100:
+        return jsonify({"message": "O titulo deve ter no maximo 100 caracteres"}), 400
+
+    if len(description) > 255:
+        return jsonify({"message": "A descricao deve ter no maximo 255 caracteres"}), 400
+
+    if len(street_name) > 160:
+        return jsonify({"message": "O nome da rua deve ter no maximo 160 caracteres"}), 400
+
+    if not street_name:
+        street_name = reverse_geocode_street(latitude, longitude)
 
     alert = Alert(
-        latitude=data['latitude'],
-        longitude=data['longitude'],
-        title=data.get('title', 'Alerta'),
-        description=data.get('description')
+        latitude=latitude,
+        longitude=longitude,
+        street_name=street_name or None,
+        title=title,
+        description=description
     )
 
     db.session.add(alert)
     db.session.commit()
-    return {"message": "Alerta criado com sucesso"}
+    return jsonify({
+        "message": "Alerta criado com sucesso",
+        "alert": alert_to_dict(alert)
+    }), 201
 
 
 @auth_bp.route("/alert", methods=["GET"])
 def get_alerts():
-    alerts = Alert.query.all()
+    alerts = Alert.query.order_by(Alert.created_at.desc()).all()
+    return jsonify([alert_to_dict(alert) for alert in alerts]), 200
 
-    result = []
-    for alert in alerts:
-        result.append({
-            "id": alert.id,
-            "latitude": alert.latitude,
-            "longitude": alert.longitude,
-            "title": alert.title,
-            "description": alert.description
+
+@auth_bp.route("/alert/<int:alert_id>/street", methods=["PATCH"])
+def update_alert_street(alert_id):
+    data = request.get_json(silent=True) or {}
+    street_name = str(data.get("street_name") or data.get("streetName") or "").strip()
+
+    if not is_resolved_street_name(street_name):
+        return jsonify({"message": "Nome da rua valido e obrigatorio"}), 400
+
+    if len(street_name) > 160:
+        return jsonify({"message": "O nome da rua deve ter no maximo 160 caracteres"}), 400
+
+    alert = db.session.get(Alert, alert_id)
+
+    if not alert:
+        return jsonify({"message": "Alerta nao encontrado"}), 404
+
+    alert.street_name = street_name
+    db.session.commit()
+
+    return jsonify({"alert": alert_to_dict(alert)}), 200
+
+
+@auth_bp.route("/reverse-geocode", methods=["GET"])
+def reverse_geocode():
+    try:
+        latitude = float(request.args.get("latitude"))
+        longitude = float(request.args.get("longitude"))
+    except (TypeError, ValueError):
+        return jsonify({"message": "Latitude e longitude validas sao obrigatorias"}), 400
+
+    if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+        return jsonify({"message": "Coordenadas fora do intervalo permitido"}), 400
+
+    street_name = reverse_geocode_street(latitude, longitude)
+    alert_id = request.args.get("alert_id")
+
+    if street_name and alert_id:
+        try:
+            alert = db.session.get(Alert, int(alert_id))
+        except (TypeError, ValueError):
+            alert = None
+
+        if alert and not is_resolved_street_name(alert.street_name):
+            alert.street_name = street_name
+            db.session.commit()
+
+    return jsonify({"street_name": street_name}), 200
+
+
+def reverse_geocode_street(latitude, longitude):
+    for zoom in (18, 17, 16):
+        params = urlencode({
+            "format": "jsonv2",
+            "addressdetails": 1,
+            "accept-language": "pt-BR",
+            "lat": latitude,
+            "lon": longitude,
+            "zoom": zoom,
         })
+        url = f"https://nominatim.openstreetmap.org/reverse?{params}"
+        request_data = Request(
+            url,
+            headers={
+                "User-Agent": "AlertaSP/1.0 reverse-geocode",
+                "Accept": "application/json",
+            },
+        )
 
-    return (result)
+        try:
+            with urlopen(request_data, timeout=4) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, ValueError) as error:
+            print(f"[reverse_geocode] falha ao buscar rua: {error}")
+            continue
+
+        street_name = extract_street_name(payload)
+
+        if street_name:
+            return street_name[:160]
+
+    return ""
+
+
+def is_resolved_street_name(street_name):
+    clean_street_name = str(street_name or "").strip()
+    return bool(clean_street_name) and clean_street_name not in STREET_NAME_PLACEHOLDERS
+
+
+def extract_street_name(payload):
+    address = payload.get("address") or {}
+
+    street = (
+        address.get("road")
+        or address.get("pedestrian")
+        or address.get("footway")
+        or address.get("cycleway")
+        or address.get("path")
+        or address.get("residential")
+        or address.get("square")
+    )
+    number = address.get("house_number")
+
+    if street:
+        return ", ".join([part for part in (street, number) if part])
+
+    fallback_parts = [
+        address.get("neighbourhood"),
+        address.get("suburb"),
+        address.get("city_district"),
+        address.get("city"),
+    ]
+    fallback = ", ".join([part for part in fallback_parts if part])
+
+    if fallback:
+        return fallback
+
+    display_name = payload.get("display_name") or ""
+    return ", ".join(display_name.split(",")[:2]).strip()
+
+
+def alert_to_dict(alert):
+    return {
+        "id": alert.id,
+        "latitude": alert.latitude,
+        "longitude": alert.longitude,
+        "street_name": alert.street_name,
+        "title": alert.title,
+        "description": alert.description,
+        "created_at": alert.created_at.isoformat() if alert.created_at else None
+    }
 # ===================NEWS==============
 
 @auth_bp.route("/news", methods=["GET"])

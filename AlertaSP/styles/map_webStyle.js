@@ -6,7 +6,11 @@ const styles = StyleSheet.create({
           justifyContent: "flex-start",
           alignItems: "center",
           padding: 24,
+          paddingBottom: 96,
           backgroundColor: "#0d0000",
+     },
+     containerKeyboardOpen: {
+          paddingBottom: 320,
      },
      title: {
           fontSize: 26,
@@ -20,6 +24,95 @@ const styles = StyleSheet.create({
           fontSize: 16,
           marginBottom: 20,
           textAlign: "center",
+     },
+     form: {
+          width: "100%",
+          maxWidth: 900,
+          backgroundColor: "#202020",
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 18,
+          borderWidth: 1,
+          borderColor: "#3a3a3a",
+     },
+     formTitle: {
+          color: "#ffd700",
+          fontSize: 18,
+          fontWeight: "bold",
+          marginBottom: 12,
+     },
+     input: {
+          width: "100%",
+          backgroundColor: "#fff",
+          color: "#111",
+          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 14,
+          fontSize: 15,
+          marginBottom: 10,
+     },
+     textArea: {
+          minHeight: 92,
+          textAlignVertical: "top",
+     },
+     coordsBox: {
+          backgroundColor: "#101010",
+          borderRadius: 10,
+          padding: 12,
+          marginBottom: 12,
+          borderWidth: 1,
+          borderColor: "#333",
+     },
+     coordsLabel: {
+          color: "#ffd700",
+          fontWeight: "bold",
+          marginBottom: 4,
+     },
+     coordsText: {
+          color: "#fff",
+          fontSize: 13,
+     },
+     formActions: {
+          width: "100%",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          gap: 10,
+     },
+     submitButton: {
+          backgroundColor: "#ffd700",
+          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 18,
+          alignItems: "center",
+          justifyContent: "center",
+     },
+     submitButtonText: {
+          color: "#000",
+          fontWeight: "bold",
+          fontSize: 15,
+     },
+     secondaryButton: {
+          backgroundColor: "#111",
+          borderRadius: 10,
+          paddingVertical: 12,
+          paddingHorizontal: 18,
+          borderWidth: 1,
+          borderColor: "#ffd700",
+          alignItems: "center",
+          justifyContent: "center",
+     },
+     secondaryButtonText: {
+          color: "#ffd700",
+          fontWeight: "bold",
+          fontSize: 15,
+     },
+     buttonDisabled: {
+          opacity: 0.6,
+     },
+     feedback: {
+          color: "#fff",
+          fontSize: 13,
+          marginTop: 10,
      },
      mapContainer: {
           width: "100%",
@@ -56,6 +149,16 @@ const styles = StyleSheet.create({
           fontSize: 14,
           marginBottom: 6,
      },
+     selectedAlertStreet: {
+          color: "#fff",
+          fontSize: 13,
+          marginBottom: 4,
+     },
+     selectedAlertDate: {
+          color: "#d8d8d8",
+          fontSize: 12,
+          marginBottom: 4,
+     },
      selectedAlertCoords: {
           color: "#bbb",
           fontSize: 12,
@@ -63,8 +166,27 @@ const styles = StyleSheet.create({
      subtitle: {
           color: "#fff",
           fontSize: 18,
-          marginBottom: 12,
           textAlign: "center",
+     },
+     listHeader: {
+          width: "100%",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 12,
+          gap: 12,
+     },
+     refreshButton: {
+          backgroundColor: "#202020",
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: "#ffd700",
+          paddingVertical: 8,
+          paddingHorizontal: 14,
+     },
+     refreshButtonText: {
+          color: "#ffd700",
+          fontWeight: "bold",
      },
      loading: {
           color: "#fff",
@@ -92,6 +214,21 @@ const styles = StyleSheet.create({
      alertText: {
           color: "#fff",
           fontSize: 14,
+          marginBottom: 4,
+     },
+     alertStreet: {
+          color: "#d8d8d8",
+          fontSize: 13,
+          marginBottom: 4,
+     },
+     alertDate: {
+          color: "#d8d8d8",
+          fontSize: 12,
+          marginBottom: 4,
+     },
+     alertCoords: {
+          color: "#aaa",
+          fontSize: 12,
           marginBottom: 4,
      },
      alertHint: {
