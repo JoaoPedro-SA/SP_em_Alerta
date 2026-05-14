@@ -247,6 +247,107 @@ def login():
 
     return {"message": "Login realizado com sucesso", "user_id": user.id}
 
+# ================== ESQUECI MINHA SENHA ==================
+
+@auth_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.json
+    email = data.get("email")
+
+    if not email:
+        return {"message": "E-mail e obrigatorio"}, 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return {"message": "Usuario nao encontrado"}, 404
+
+    otp = generate_otp_code()
+    expiry = datetime.utcnow() + timedelta(minutes=10)
+
+    user.otp_code = otp
+    user.otp_expiry = expiry
+    db.session.commit()
+
+    msg = Message(
+        subject="Codigo para redefinir sua senha - AlertaSP",
+        sender=current_app.config["MAIL_USERNAME"],
+        recipients=[email]
+    )
+
+    msg.body = f"""
+Ola,
+
+Seu codigo para redefinir a senha e: {otp}
+
+Ele expira em 10 minutos.
+
+Se voce nao solicitou esta redefinicao, ignore este e-mail.
+
+Equipe AlertaSP
+"""
+
+    msg.html = f"""
+<div style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 40px 0;">
+  <div style="max-width: 500px; margin: auto; background: #ffffff; border-radius: 12px; padding: 30px; text-align: center;">
+    <h2 style="color: #e53935; margin-bottom: 10px;">SP EM ALERTA</h2>
+    <p style="color: #555; font-size: 15px;">Use o codigo abaixo para redefinir sua senha:</p>
+    <div style="margin: 30px 0;">
+      <span style="display: inline-block; font-size: 32px; letter-spacing: 6px; font-weight: bold; color: #ffffff; background: #000000; padding: 15px 25px; border-radius: 10px;">
+        {otp}
+      </span>
+    </div>
+    <p style="color: #777; font-size: 14px;">Este codigo expira em <strong>10 minutos</strong>.</p>
+    <p style="color: #999; font-size: 13px;">Se voce nao solicitou esta redefinicao, ignore este e-mail.</p>
+  </div>
+</div>
+"""
+
+    try:
+        mail.send(msg)
+        print(f"[forgot_password] codigo enviado para {email}")
+    except Exception as e:
+        print(f"[forgot_password] erro ao enviar email para {email}: {e}")
+        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+
+    return {"message": "Codigo enviado para seu e-mail."}, 200
+
+
+@auth_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    data = request.json
+    email = data.get("email")
+    otp_input = data.get("otp")
+    new_password = data.get("new_password")
+
+    if not email or not otp_input or not new_password:
+        return {"message": "E-mail, codigo e nova senha sao obrigatorios"}, 400
+
+    if len(new_password) < 6:
+        return {"message": "A nova senha deve ter pelo menos 6 caracteres"}, 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user:
+        return {"message": "Usuario nao encontrado"}, 404
+
+    if not user.otp_code or not user.otp_expiry:
+        return {"message": "Solicite um novo codigo de redefinicao"}, 400
+
+    if datetime.utcnow() > user.otp_expiry:
+        return {"message": "O codigo expirou. Solicite um novo."}, 400
+
+    if user.otp_code != otp_input:
+        return {"message": "Codigo invalido"}, 400
+
+    user.password = generate_password_hash(new_password)
+    user.otp_code = None
+    user.otp_expiry = None
+    user.is_verified = True
+    db.session.commit()
+
+    return {"message": "Senha redefinida com sucesso."}, 200
+
 from flask import request, jsonify
 from .models import Alert
 from .extensions import db

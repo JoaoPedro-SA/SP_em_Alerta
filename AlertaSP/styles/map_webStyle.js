@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
      },
      mapContainer: {
           width: "100%",
-          height: 320,
+          height: 520,
           borderRadius: 16,
           overflow: "hidden",
           marginBottom: 20,
@@ -35,6 +35,30 @@ const styles = StyleSheet.create({
           width: "100%",
           height: "100%",
           border: 0,
+     },
+     selectedAlert: {
+          width: "100%",
+          backgroundColor: "#202020",
+          borderLeftWidth: 6,
+          borderLeftColor: "#1e88e5",
+          borderRadius: 10,
+          padding: 14,
+          marginBottom: 20,
+     },
+     selectedAlertTitle: {
+          color: "#ffd700",
+          fontSize: 18,
+          fontWeight: "bold",
+          marginBottom: 6,
+     },
+     selectedAlertText: {
+          color: "#fff",
+          fontSize: 14,
+          marginBottom: 6,
+     },
+     selectedAlertCoords: {
+          color: "#bbb",
+          fontSize: 12,
      },
      subtitle: {
           color: "#fff",

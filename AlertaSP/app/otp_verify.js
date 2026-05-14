@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Text, TextInput, TouchableOpacity, Alert, Platform, StyleSheet, ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import AppBackground from '../components/AppBackground';
 import api from './src/services/api';
+
+const webHoverProps = (onEnter, onLeave) =>
+    Platform.OS === "web"
+        ? {
+            onMouseEnter: onEnter,
+            onMouseLeave: onLeave,
+        }
+        : {};
 
 export default function OtpVerify() {
     const router = useRouter();
@@ -135,10 +143,7 @@ export default function OtpVerify() {
     };
 
     return (
-        <LinearGradient
-            colors={["#0d0000", "#2b0000", "#5a3a00"]}
-            style={styles.container}
-        >
+        <AppBackground style={styles.container}>
             <View
                 style={{
                     width: "100%",
@@ -185,8 +190,7 @@ export default function OtpVerify() {
                         hover && isWeb ? { opacity: 0.8 } : null,
                         loading && styles.buttonDisabled
                     ]}
-                    onMouseEnter={isWeb ? () => setHover(true) : null}
-                    onMouseLeave={isWeb ? () => setHover(false) : null}
+                    {...webHoverProps(() => setHover(true), () => setHover(false))}
                     onPress={handleVerify}
                     disabled={loading}
                 >
@@ -215,7 +219,7 @@ export default function OtpVerify() {
                     <Text style={styles.linkText}>Voltar para Login</Text>
                 </TouchableOpacity>
             </View>
-        </LinearGradient>
+        </AppBackground>
     );
 }
 
