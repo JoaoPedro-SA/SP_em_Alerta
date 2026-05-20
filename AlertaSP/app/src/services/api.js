@@ -1,12 +1,23 @@
-import axios from 'axios';
+import axios from "axios";
+import { Platform } from "react-native";
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.15.25:5001';
+function getApiUrl() {
+    if (process.env.EXPO_PUBLIC_API_URL) {
+        return process.env.EXPO_PUBLIC_API_URL;
+    }
+
+    if (Platform.OS === "web" && typeof window !== "undefined") {
+        return `${window.location.protocol}//${window.location.hostname}:5001`;
+    }
+
+    return "http://192.168.15.25:5001";
+}
 
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: getApiUrl(),
     timeout: 8000,
     headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
     },
 });
 
