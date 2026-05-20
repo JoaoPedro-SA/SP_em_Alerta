@@ -8,10 +8,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
     },
 
+    listContent: {
+        paddingBottom: 96,
+    },
+
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+    },
+
+    header: {
+        width: "100%",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 20,
+        gap: 12,
     },
 
     title: {
@@ -19,7 +32,21 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#FFF",
         textAlign: "center",
-        marginBottom: 20,
+        flex: 1,
+    },
+
+    logoutButton: {
+        backgroundColor: "#1c1c1e",
+        borderWidth: 1,
+        borderColor: "#FFD700",
+        borderRadius: 10,
+        paddingVertical: 9,
+        paddingHorizontal: 14,
+    },
+
+    logoutButtonText: {
+        color: "#FFD700",
+        fontWeight: "bold",
     },
 
     sectionTitle: {
@@ -37,11 +64,18 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 
-    highlightImage: {
-        width: "100%",
-        height: 220,
-        borderRadius: 10,
-        marginBottom: 12,
+    highlightHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 8,
+    },
+
+    highlightLogo: {
+        width: 34,
+        height: 34,
+        borderRadius: 8,
+        backgroundColor: "#FFF",
     },
 
     highlightLevel: {
@@ -73,13 +107,21 @@ const styles = StyleSheet.create({
         marginBottom: 12,
         borderLeftWidth: 6,
         borderRadius: 10,
+        flexDirection: "row",
+        gap: 12,
+        alignItems: "center",
     },
 
-    image: {
-        width: "100%",
-        height: 180,
+    cardImage: {
+        width: 84,
+        height: 84,
         borderRadius: 8,
-        marginBottom: 10,
+        backgroundColor: "#DDD",
+    },
+
+    cardContent: {
+        flex: 1,
+        minWidth: 0,
     },
 
     cardTitle: {
@@ -99,13 +141,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
 
-    button: {
+    fixedMapButton: {
+        position: "absolute",
+        left: 12,
+        right: 12,
+        bottom: 18,
         backgroundColor: "#FFD700",
         padding: 15,
         borderRadius: 10,
         alignItems: "center",
-        marginTop: 10,
-        marginBottom: 30,
+        shadowColor: "#000",
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
     },
 
     buttonText: {

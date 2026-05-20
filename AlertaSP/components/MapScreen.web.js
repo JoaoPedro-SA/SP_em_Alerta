@@ -10,6 +10,7 @@ const DEFAULT_COORDS = {
   longitude: -46.633309,
 };
 
+const EARTH_RADIUS_KM = 6371;
 const STREET_LOOKUP_FAILED = "Rua proxima nao encontrada";
 const STREET_PLACEHOLDERS = new Set(["Rua nao identificada", STREET_LOOKUP_FAILED]);
 
@@ -77,6 +78,39 @@ function formatPublishedAt(value) {
 function getPublishedDisplay(alert) {
   const publishedAt = formatPublishedAt(alert?.created_at || alert?.createdAt);
   return publishedAt ? `Publicado em: ${publishedAt}` : "";
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceInKm(origin, target) {
+  if (!origin || !target) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const latitudeDistance = toRadians(target.latitude - origin.latitude);
+  const longitudeDistance = toRadians(target.longitude - origin.longitude);
+  const originLatitude = toRadians(origin.latitude);
+  const targetLatitude = toRadians(target.latitude);
+
+  const halfChordLength =
+    Math.sin(latitudeDistance / 2) * Math.sin(latitudeDistance / 2) +
+    Math.cos(originLatitude) *
+      Math.cos(targetLatitude) *
+      Math.sin(longitudeDistance / 2) *
+      Math.sin(longitudeDistance / 2);
+
+  return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
+}
+
+function getNearbyAlerts(alerts, location) {
+  return [...alerts]
+    .map((alert) => ({
+      ...alert,
+      distanceInKm: getDistanceInKm(location, alert),
+    }))
+    .sort((firstAlert, secondAlert) => firstAlert.distanceInKm - secondAlert.distanceInKm);
 }
 
 function extractOsmStreetName(data) {
@@ -264,6 +298,10 @@ function buildGoogleMapHtml(alerts, selectedAlert, fallbackCoords) {
           .addTo(map)
           .bindPopup(popupContent(alert.title, alert.description, alertStreetName, alert.created_at || alert.createdAt));
 
+        marker.on("click", () => {
+          window.parent.postMessage({ type: "alert-selected", alertId: alert.id }, "*");
+        });
+
         bounds.push([position.lat, position.lng]);
 
         if (String(alert.id) === String(selectedId)) {
@@ -286,6 +324,7 @@ function buildGoogleMapHtml(alerts, selectedAlert, fallbackCoords) {
 export default function MapScreen() {
   const router = useRouter();
   const [alerts, setAlerts] = useState([]);
+  const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [feedback, setFeedback] = useState("");
@@ -298,17 +337,9 @@ export default function MapScreen() {
 
       setAlerts(normalizedAlerts);
       hydrateAlertStreetNames(normalizedAlerts);
-      setSelectedAlert((current) => {
-        if (current) {
-          return normalizedAlerts.find((alert) => String(alert.id) === String(current.id)) || null;
-        }
-
-        return normalizedAlerts[0] || null;
-      });
     } catch (error) {
       console.error("Erro ao buscar alerts no web map:", error);
       setAlerts(TEST_ALERTS);
-      setSelectedAlert(TEST_ALERTS[0]);
       setFeedback("Nao foi possivel carregar a API. Mostrando alertas de teste.");
     } finally {
       setLoading(false);
@@ -368,14 +399,76 @@ export default function MapScreen() {
     );
   }
 
+  function getBrowserLocation() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setUserLocation(DEFAULT_COORDS);
+      setFeedback((current) => current || "Nao foi possivel obter sua localizacao. Usando Sao Paulo como referencia.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      () => {
+        setUserLocation(DEFAULT_COORDS);
+        setFeedback((current) => current || "Permissao de localizacao negada. Usando Sao Paulo como referencia.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }
+
   useEffect(() => {
+    getBrowserLocation();
     fetchAlerts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const nearbyAlerts = useMemo(
+    () => getNearbyAlerts(alerts, userLocation || DEFAULT_COORDS),
+    [alerts, userLocation]
+  );
+
+  useEffect(() => {
+    function handleMapMessage(event) {
+      if (event.data?.type !== "alert-selected") {
+        return;
+      }
+
+      const clickedAlert = nearbyAlerts.find((alert) => String(alert.id) === String(event.data.alertId));
+
+      if (clickedAlert) {
+        setSelectedAlert(clickedAlert);
+      }
+    }
+
+    window.addEventListener("message", handleMapMessage);
+
+    return () => {
+      window.removeEventListener("message", handleMapMessage);
+    };
+  }, [nearbyAlerts]);
+
+  useEffect(() => {
+    setSelectedAlert((current) => {
+      if (current && nearbyAlerts.some((alert) => String(alert.id) === String(current.id))) {
+        return nearbyAlerts.find((alert) => String(alert.id) === String(current.id)) || current;
+      }
+
+      return nearbyAlerts[0] || null;
+    });
+  }, [nearbyAlerts]);
+
   const mapHtml = useMemo(
-    () => buildGoogleMapHtml(alerts, selectedAlert, DEFAULT_COORDS),
-    [alerts, selectedAlert]
+    () => buildGoogleMapHtml(nearbyAlerts, selectedAlert, userLocation || DEFAULT_COORDS),
+    [nearbyAlerts, selectedAlert, userLocation]
   );
 
   return (
@@ -403,29 +496,15 @@ export default function MapScreen() {
         </View>
       )}
 
-      <View style={styles.listHeader}>
-        <Text style={styles.subtitle}>Alertas proximos</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={fetchAlerts}>
-          <Text style={styles.refreshButtonText}>Atualizar</Text>
-        </TouchableOpacity>
-      </View>
-
       {loading ? (
         <Text style={styles.loading}>Carregando alertas...</Text>
-      ) : alerts.length === 0 ? (
+      ) : nearbyAlerts.length === 0 ? (
         <Text style={styles.empty}>Nenhum alerta encontrado.</Text>
-      ) : (
-        alerts.map((alert) => (
-          <TouchableOpacity key={alert.id} style={styles.alertCard} onPress={() => setSelectedAlert(alert)}>
-            <Text style={styles.alertTitle}>{alert.title || "Alerta"}</Text>
-            <Text style={styles.alertText}>{alert.description || "Sem descricao"}</Text>
-            <Text style={styles.alertStreet}>Rua: {getStreetDisplay(alert)}</Text>
-            {getPublishedDisplay(alert) ? <Text style={styles.alertDate}>{getPublishedDisplay(alert)}</Text> : null}
-            <Text style={styles.alertCoords}>Coordenadas: {formatAlertCoordinates(alert)}</Text>
-            <Text style={styles.alertHint}>Toque para abrir o marcador no mapa</Text>
-          </TouchableOpacity>
-        ))
-      )}
+      ) : null}
+
+      <TouchableOpacity style={styles.refreshButton} onPress={fetchAlerts}>
+        <Text style={styles.refreshButtonText}>Atualizar</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.button} onPress={() => router.replace("/home")}>
         <Text style={styles.buttonText}>Voltar para Home</Text>

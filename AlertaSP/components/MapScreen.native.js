@@ -26,6 +26,7 @@ const DEFAULT_DELTA = {
   longitudeDelta: 0.03,
 };
 
+const EARTH_RADIUS_KM = 6371;
 const KEYBOARD_PANEL_GAP = 8;
 
 function normalizeAlert(alert) {
@@ -91,6 +92,39 @@ function getMarkerDescription(alert) {
     alert.description || "Sem descricao",
     getPublishedDisplay(alert),
   ].filter(Boolean).join(" - ");
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function getDistanceInKm(origin, target) {
+  if (!origin || !target) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const latitudeDistance = toRadians(target.latitude - origin.latitude);
+  const longitudeDistance = toRadians(target.longitude - origin.longitude);
+  const originLatitude = toRadians(origin.latitude);
+  const targetLatitude = toRadians(target.latitude);
+
+  const halfChordLength =
+    Math.sin(latitudeDistance / 2) * Math.sin(latitudeDistance / 2) +
+    Math.cos(originLatitude) *
+      Math.cos(targetLatitude) *
+      Math.sin(longitudeDistance / 2) *
+      Math.sin(longitudeDistance / 2);
+
+  return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
+}
+
+function getNearbyAlerts(alerts, location) {
+  return [...alerts]
+    .map((alert) => ({
+      ...alert,
+      distanceInKm: getDistanceInKm(location, alert),
+    }))
+    .sort((firstAlert, secondAlert) => firstAlert.distanceInKm - secondAlert.distanceInKm);
 }
 
 function formatReverseGeocodeAddress(address) {
@@ -303,6 +337,8 @@ export default function MapScreen() {
     );
   }
 
+  const nearbyAlerts = getNearbyAlerts(alerts, location);
+
   return (
     <View style={styles.screen}>
       <MapView
@@ -324,7 +360,7 @@ export default function MapScreen() {
           title="Voce esta aqui"
         />
 
-        {alerts.map((alert) => (
+        {nearbyAlerts.map((alert) => (
           <Marker
             key={alert.id}
             coordinate={{
@@ -359,7 +395,7 @@ export default function MapScreen() {
           <View style={styles.panelHeader}>
             <Text style={styles.panelTitle}>Novo alerta</Text>
             <Text style={styles.counterText}>
-              {loadingAlerts ? "Atualizando..." : `${alerts.length} visiveis`}
+              {loadingAlerts ? "Atualizando..." : `${nearbyAlerts.length} visiveis`}
             </Text>
           </View>
 

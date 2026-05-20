@@ -1,11 +1,8 @@
-hostname: dpg-d6g3lg4r85hc73b5l6a0-a
-port: 5432
-database: sp_em_alerta
-username: sp_em_alerta_user
-password: 0Z6fLuiNKGLi7PIap32u7ObgfOFuuilm
-Internal Database URL: postgresql://sp_em_alerta_user:0Z6fLuiNKGLi7PIap32u7ObgfOFuuilm@dpg-d6g3lg4r85hc73b5l6a0-a/sp_em_alerta
-external Database URL: postgresql://sp_em_alerta_user:0Z6fLuiNKGLi7PIap32u7ObgfOFuuilm@dpg-d6g3lg4r85hc73b5l6a0-a.oregon-postgres.render.com/sp_em_alerta
-PSQL Command: PGPASSWORD=0Z6fLuiNKGLi7PIap32u7ObgfOFuuilm psql -h dpg-d6g3lg4r85hc73b5l6a0-a.oregon-postgres.render.com -U sp_em_alerta_user sp_em_alerta
+Render database settings
 
+Use environment variables in Render instead of saving real credentials here.
 
+DATABASE_URL=postgresql://usuario:senha@host:5432/nome_do_banco
+FRONTEND_URL=https://seu-front-end.onrender.com
+SECRET_KEY=troque-esta-chave
 

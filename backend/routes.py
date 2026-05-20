@@ -1,8 +1,13 @@
 import random
+import hashlib
 import json
+import re
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+from email.utils import parsedate_to_datetime
+from html import unescape
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 from flask import Blueprint, request, current_app
 from flask_mail import Message
@@ -13,6 +18,13 @@ from .models import User,Alert,News
 
 auth_bp = Blueprint("auth", __name__)
 STREET_NAME_PLACEHOLDERS = {"Rua nao identificada", "Rua proxima nao encontrada"}
+ALERT_EXPIRATION_HOURS = 6
+SP_NEWS_FEED_URL = "https://news.google.com/rss/search?q=S%C3%A3o%20Paulo%20SP&hl=pt-BR&gl=BR&ceid=BR:pt-419"
+NEWS_IMAGE_URLS = {
+    "vermelho": "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=320&q=70",
+    "amarelo": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=320&q=70",
+    "verde": "https://images.unsplash.com/photo-1543059080-f9b1272213d5?auto=format&fit=crop&w=320&q=70",
+}
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -408,7 +420,13 @@ def create_alert():
 
 @auth_bp.route("/alert", methods=["GET"])
 def get_alerts():
-    alerts = Alert.query.order_by(Alert.created_at.desc()).all()
+    expiration_limit = datetime.utcnow() - timedelta(hours=ALERT_EXPIRATION_HOURS)
+    alerts = (
+        Alert.query
+        .filter(Alert.created_at >= expiration_limit)
+        .order_by(Alert.created_at.desc())
+        .all()
+    )
     return jsonify([alert_to_dict(alert) for alert in alerts]), 200
 
 
@@ -546,9 +564,19 @@ def alert_to_dict(alert):
 
 @auth_bp.route("/news", methods=["GET"])
 def get_news():
-
     nivel = request.args.get("nivel")
     regiao = request.args.get("regiao")
+
+    live_news = fetch_sp_news()
+
+    if nivel:
+        live_news = [item for item in live_news if nivel.lower() in item["nivel"].lower()]
+
+    if regiao:
+        live_news = [item for item in live_news if regiao.lower() in item["regiao"].lower()]
+
+    if live_news:
+        return jsonify(live_news[:20]), 200
 
     query = News.query
 
@@ -561,6 +589,112 @@ def get_news():
     noticias = query.order_by(News.created_at.desc()).limit(20).all()
 
     return jsonify([n.to_dict() for n in noticias]), 200
+
+
+def fetch_sp_news():
+    request_data = Request(
+        SP_NEWS_FEED_URL,
+        headers={
+            "User-Agent": "AlertaSP/1.0 news-reader",
+            "Accept": "application/rss+xml, application/xml, text/xml",
+        },
+    )
+
+    try:
+        with urlopen(request_data, timeout=6) as response:
+            payload = response.read()
+    except (HTTPError, URLError, TimeoutError) as error:
+        print(f"[news] falha ao buscar noticias externas: {error}")
+        return []
+
+    try:
+        root = ET.fromstring(payload)
+    except ET.ParseError as error:
+        print(f"[news] falha ao ler RSS: {error}")
+        return []
+
+    news = []
+
+    for index, item in enumerate(root.findall("./channel/item"), start=1):
+        raw_title = clean_news_text(item.findtext("title"))
+        title, source = split_google_news_title(raw_title)
+        source_element = item.find("source")
+        source_url = source_element.get("url") if source_element is not None else ""
+        description = clean_news_text(item.findtext("description"))
+        link = clean_news_text(item.findtext("link"))
+        published_at = parse_news_date(item.findtext("pubDate"))
+
+        if not title:
+            continue
+
+        stable_id = hashlib.sha1((link or title).encode("utf-8")).hexdigest()[:12]
+        level = infer_news_level(f"{title} {description}")
+
+        news.append({
+            "id": f"sp-news-{index}-{stable_id}",
+            "titulo": title[:150],
+            "descricao": (description or "Noticia de Sao Paulo publicada recentemente.")[:255],
+            "nivel": level,
+            "regiao": "Sao Paulo",
+            "fonte": source or "Google Noticias",
+            "imagem": get_news_image(level, source_url),
+            "link": link,
+            "data": published_at,
+        })
+
+    return news
+
+
+def clean_news_text(value):
+    text = unescape(str(value or ""))
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def split_google_news_title(title):
+    if " - " not in title:
+        return title, "Google Noticias"
+
+    headline, source = title.rsplit(" - ", 1)
+    return headline.strip(), source.strip()
+
+
+def parse_news_date(value):
+    if not value:
+        return None
+
+    try:
+        date = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+
+    return date.strftime("%d/%m/%Y %H:%M")
+
+
+def infer_news_level(text):
+    lowered = text.lower()
+    red_keywords = ("morte", "mortes", "tiroteio", "incendio", "incêndio", "desabamento", "alagamento", "temporal", "acidente", "interditado")
+    yellow_keywords = ("chuva", "alerta", "risco", "transito", "trânsito", "metro", "metrô", "cptm", "ônibus", "onibus", "greve", "operação", "operacao")
+
+    if any(keyword in lowered for keyword in red_keywords):
+        return "vermelho"
+
+    if any(keyword in lowered for keyword in yellow_keywords):
+        return "amarelo"
+
+    return "verde"
+
+
+def get_news_image(level, source_url=""):
+    parsed_url = urlparse(source_url or "")
+    domain = parsed_url.netloc
+
+    if domain:
+        return f"https://www.google.com/s2/favicons?domain={quote(domain)}&sz=128"
+
+    return NEWS_IMAGE_URLS.get(level, NEWS_IMAGE_URLS["verde"])
+
 
 @auth_bp.route("/reset-db", methods=["POST"])
 def reset_db():
