@@ -1,4 +1,4 @@
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
 import { useEffect } from "react";
 import * as SplashScreen from "expo-splash-screen";
 
@@ -11,20 +11,5 @@ export default function RootLayout() {
           SplashScreen.hideAsync();
      }, []);
 
-     return (
-          <Stack
-               screenOptions={{
-                    headerShown: false,
-                    animationEnabled: true,
-               }}
-          >
-               {/* Telas principais */}
-               <Stack.Screen name="index" options={{ title: "Splash" }} />
-               <Stack.Screen name="login" options={{ title: "Login" }} />
-               <Stack.Screen name="register" options={{ title: "Registrar" }} />
-               <Stack.Screen name="otp_verify" options={{ title: "Verificar OTP" }} />
-               <Stack.Screen name="home" options={{ title: "Home" }} />
-               <Stack.Screen name="map" options={{ title: "Mapa" }} />
-          </Stack>
-     );
+     return <Slot />;
 }

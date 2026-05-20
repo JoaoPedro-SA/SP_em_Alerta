@@ -1,9 +1,17 @@
 import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, Platform, useWindowDimensions } from "react-native";
 import api from "./src/services/api";
-import { LinearGradient } from "expo-linear-gradient";
+import AppBackground from "../components/AppBackground";
 import styles from "../styles/loginStyle";
 import { useState } from "react";
+
+const webHoverProps = (onEnter, onLeave) =>
+  Platform.OS === "web"
+    ? {
+        onMouseEnter: onEnter,
+        onMouseLeave: onLeave,
+      }
+    : {};
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -18,7 +26,7 @@ export default function Login() {
   const isWeb = Platform.OS === 'web'
   async function handleLogin() {
     try {
-      const response = await api.post("/login", {
+      await api.post("/login", {
         email,
         password,
       });
@@ -35,10 +43,7 @@ export default function Login() {
   }
 
   return (
-    <LinearGradient
-      colors={["#0d0000", "#2b0000", "#5a3a00"]}
-      style={styles.container}
-    >
+    <AppBackground style={styles.container}>
       <View
         style={{
           width: "100%",
@@ -83,14 +88,13 @@ export default function Login() {
             { padding: isDesktop ? 15 : 12 },
             hover && isWeb ? { opacity: 0.8 } : null
           ]}
-          onMouseEnter={isWeb ? () => setHover(true) : null}
-          onMouseLeave={isWeb ? () => setHover(false) : null}
+          {...webHoverProps(() => setHover(true), () => setHover(false))}
           onPress={handleLogin}
         >
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/forgot_password")}>
           <Text style={styles.link}>Esqueci minha senha</Text>
         </TouchableOpacity>
 
@@ -98,7 +102,7 @@ export default function Login() {
           <Text style={styles.link}>Criar conta</Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </AppBackground>
   );
 }
 

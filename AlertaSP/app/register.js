@@ -10,9 +10,17 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import AppBackground from "../components/AppBackground";
 import styles from "../styles/registerStyle";
 import api from "./src/services/api";
+
+const webHoverProps = (onEnter, onLeave) =>
+  Platform.OS === "web"
+    ? {
+        onMouseEnter: onEnter,
+        onMouseLeave: onLeave,
+      }
+    : {};
 
 export default function Register() {
   const router = useRouter();
@@ -96,10 +104,7 @@ export default function Register() {
   }
 
   return (
-    <LinearGradient
-      colors={["#0d0000", "#2b0000", "#5a3a00"]}
-      style={styles.container}
-    >
+    <AppBackground style={styles.container}>
       <View
         style={{
           width: "100%",
@@ -172,8 +177,7 @@ export default function Register() {
             hover && isWeb ? { opacity: 0.8 } : null,
             loading && styles.buttonDisabled
           ]}
-          onMouseEnter={isWeb ? () => setHover(true) : null}
-          onMouseLeave={isWeb ? () => setHover(false) : null}
+          {...webHoverProps(() => setHover(true), () => setHover(false))}
           onPress={handleRegister}
           disabled={loading}
         >
@@ -190,6 +194,6 @@ export default function Register() {
           <Text style={styles.btnText}>Já Alerta? Entrar</Text>
         </TouchableOpacity>
       </View>
-    </LinearGradient>
+    </AppBackground>
   );
 }

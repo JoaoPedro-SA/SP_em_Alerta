@@ -14,6 +14,7 @@ class Alert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
+    street_name = db.Column(db.String(160))
     title = db.Column(db.String(100), default="Alerta")
     description = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
