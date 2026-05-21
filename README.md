@@ -1,57 +1,60 @@
 # 🚨 SP em Alerta
 
-![Python](https://img.shields.io/badge/Python-Backend-blue)
-![React Native](https://img.shields.io/badge/React%20Native-Frontend-61dafb)
-![Expo](https://img.shields.io/badge/Expo-Mobile-black)
-![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-yellow)
+![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge\&logo=python)
+![React Native](https://img.shields.io/badge/React%20Native-Mobile-blue?style=for-the-badge\&logo=react)
+![Expo](https://img.shields.io/badge/Expo-Framework-black?style=for-the-badge\&logo=expo)
+![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento-success?style=for-the-badge)
 
-**SP em Alerta** é um aplicativo mobile desenvolvido para a cidade de **São Paulo** que permite aos usuários **registrar e visualizar ocorrências de segurança em tempo real**, como:
+O **SP em Alerta** é um aplicativo mobile desenvolvido para a cidade de São Paulo com foco em segurança comunitária e conscientização urbana.
 
-* 🚔 Assaltos
-* ⚠️ Situações de risco
-* 🚗 Acidentes
-* 🔦 Atividades suspeitas
-* 📢 Alertas comunitários
+A plataforma permite que usuários registrem, visualizem e compartilhem ocorrências em tempo real diretamente no mapa da cidade.
 
-O objetivo da plataforma é **aumentar a consciência urbana da população**, permitindo que moradores compartilhem informações importantes sobre acontecimentos em sua região.
+## 📱 Funcionalidades
 
-O aplicativo utiliza **React Native com Expo no frontend** e **Python no backend**, além da integração com **Google Maps API** para visualização e registro de ocorrências diretamente no mapa.
-
----
-
-# 📱 Funcionalidades
-
-✔️ Registro de ocorrências com localização no mapa
-✔️ Visualização de alertas em tempo real
-✔️ Integração com Google Maps
-✔️ Interface mobile intuitiva
-✔️ Sistema de compartilhamento de ocorrências
-✔️ Visualização geográfica dos eventos
+* 🚔 Registro de ocorrências em tempo real
+* 📍 Geolocalização integrada com Google Maps
+* ⚠️ Compartilhamento de alertas comunitários
+* 🗺️ Visualização de ocorrências no mapa
+* 📲 Interface mobile intuitiva
+* 🔄 Atualização dinâmica de eventos
+* 📡 Estrutura baseada em API REST
 
 ---
 
-# 🧠 Arquitetura do Sistema
+# 🧠 Tipos de Ocorrências
 
-O sistema segue uma arquitetura baseada em **API REST**, separando frontend e backend.
+O aplicativo permite registrar diferentes tipos de alertas:
 
-```
-Usuário (App Mobile)
-        │
-        ▼
+* Assaltos
+* Acidentes
+* Situações de risco
+* Atividades suspeitas
+* Alertas comunitários
+
+---
+
+# 🏗️ Arquitetura do Sistema
+
+O projeto utiliza uma arquitetura separada entre frontend e backend:
+
+```text
+Usuário (Aplicativo Mobile)
+            │
+            ▼
 Frontend (React Native + Expo)
-        │
-        ▼
+            │
+            ▼
 API REST (Python)
-        │
-        ▼
+            │
+            ▼
 Google Maps API
 ```
 
 ---
 
-# 🛠️ Tecnologias Utilizadas
+# ⚙️ Tecnologias Utilizadas
 
-## 📱 Frontend
+## 🎨 Frontend
 
 * React Native
 * Expo
@@ -59,13 +62,13 @@ Google Maps API
 * JavaScript
 * Google Maps API
 
-## 🖥️ Backend
+## 🐍 Backend
 
 * Python
 * API REST
-* Estrutura modular com rotas e modelos
+* Estrutura modular
 
-## ⚙️ Ferramentas
+## 🛠️ Ferramentas
 
 * Node.js
 * NPM
@@ -77,203 +80,203 @@ Google Maps API
 
 # 📂 Estrutura do Projeto
 
-```
+```text
 AlertaSP/
 │
-├── app/                # Rotas e telas do aplicativo (Expo Router)
-├── assets/             # Imagens e recursos estáticos
+├── app/                # Rotas e telas do aplicativo
+├── assets/             # Recursos estáticos
 ├── components/         # Componentes reutilizáveis
 ├── constants/          # Constantes globais
-├── hooks/              # Hooks personalizados do React
+├── hooks/              # Hooks personalizados
 ├── scripts/            # Scripts auxiliares
-├── styles/             # Estilização do projeto
+├── styles/             # Estilos da aplicação
 │
-├── .vscode/            # Configurações do VSCode
-├── app.json            # Configuração do Expo
-├── eslint.config.js    # Configuração do ESLint
-├── package.json        # Dependências do frontend
-├── tsconfig.json       # Configuração do TypeScript
+├── backend/            # API Python
+│   ├── __init__.py
+│   ├── config.py
+│   ├── extensions.py
+│   ├── models.py
+│   ├── routes.py
+│   ├── secret.py
+│   ├── app.py
+│   └── requirements.txt
 │
-└── backend/            # API da aplicação
-    │
-    ├── __init__.py
-    ├── config.py
-    ├── extensions.py
-    ├── models.py
-    ├── routes.py
-    ├── secret.py
-    │
-    ├── instance/
-    │
-    ├── app.py          # Arquivo principal da API
-    ├── Procfile        # Configuração de deploy
-    ├── render.txt      # Configuração para Render
-    └── requirements.txt
+├── package.json
+├── app.json
+├── tsconfig.json
+└── README.md
 ```
 
 ---
 
-# ⚙️ Instalação do Projeto
+# 🚀 Instalação do Projeto
 
 ## 1️⃣ Clonar o repositório
 
 ```bash
-git clone https://github.com/seu-repositorio/sp-em-alerta.git
-```
+git clone https://github.com/Theuss-fer/SP_em_Alerta.git
 
-```bash
-cd AlertaSP
+cd SP_em_Alerta
 ```
 
 ---
 
-# 🖥️ Executando o Backend (Python)
+# 🐍 Executando o Backend
 
-Entre na pasta do backend:
+## Entrar na pasta do backend
 
 ```bash
 cd backend
 ```
 
-Crie um ambiente virtual:
-
-```bash
-python -m venv venv
-```
-
-Ative o ambiente virtual.
+## Criar ambiente virtual
 
 ### Windows
 
 ```bash
+python -m venv venv
 venv\Scripts\activate
 ```
 
 ### Linux / Mac
 
 ```bash
+python3 -m venv venv
 source venv/bin/activate
 ```
 
-Instale as dependências:
+## Instalar dependências
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Execute o servidor:
+## Executar servidor
 
 ```bash
 python app.py
 ```
 
-A API estará rodando em:
+A API ficará disponível em:
 
-```
+```text
 http://localhost:5000
 ```
 
 ---
 
-# 📱 Executando o Frontend (Expo)
+# 📱 Executando o Frontend
 
-Volte para a pasta raiz do projeto.
+## Voltar para a raiz do projeto
 
 ```bash
 cd ..
 ```
 
-Instale as dependências:
+## Instalar dependências
 
 ```bash
 npm install
 ```
 
-Inicie o projeto:
+## Iniciar aplicação
 
 ```bash
 npx expo start
 ```
 
-Você poderá executar o aplicativo através de:
+Você poderá executar o aplicativo utilizando:
 
-* 📱 **Expo Go** no celular
-* 🤖 **Emulador Android**
-* 🌐 **Navegador**
+* Expo Go
+* Emulador Android
+* Navegador Web
 
 ---
 
-# 🗺️ Integração com Google Maps
+# 🗺️ Configuração do Google Maps
 
-O aplicativo utiliza **Google Maps API** para:
+O projeto utiliza a Google Maps API para:
 
-* Visualização de ocorrências no mapa
-* Seleção de localização
-* Registro de novos alertas
+* Exibir ocorrências no mapa
+* Selecionar localizações
+* Registrar novos alertas
 
-Para utilizar o mapa, é necessário configurar uma **API Key do Google Maps**.
+Crie um arquivo `.env` e adicione:
 
-Exemplo:
-
-```
+```env
 GOOGLE_MAPS_API_KEY=SUA_CHAVE_AQUI
 ```
 
 ---
 
-# 📖 Como Utilizar o Aplicativo
+# 📌 Como Utilizar
 
-1️⃣ Abra o aplicativo pelo **Expo**.
-
-2️⃣ O mapa da cidade de **São Paulo** será exibido.
-
-3️⃣ Visualize ocorrências registradas por outros usuários.
-
-4️⃣ Para criar um novo alerta:
-
-* selecione uma localização no mapa
-* adicione uma descrição da ocorrência
-* confirme o envio
-
-5️⃣ O alerta será exibido para outros usuários.
+1. Abra o aplicativo pelo Expo
+2. Visualize o mapa da cidade de São Paulo
+3. Consulte alertas registrados por outros usuários
+4. Crie uma nova ocorrência
+5. Compartilhe informações importantes com a comunidade
 
 ---
 
 # 🎯 Objetivo do Projeto
 
-O projeto **SP em Alerta** busca:
+O SP em Alerta busca:
 
-* aumentar a **segurança comunitária**
-* permitir **compartilhamento rápido de informações**
-* melhorar a **consciência urbana da população**
-* fornecer uma plataforma colaborativa de alertas
+* Melhorar a segurança comunitária
+* Incentivar colaboração entre moradores
+* Facilitar o compartilhamento rápido de informações
+* Aumentar a consciência urbana
+
+---
+
+# 🔮 Melhorias Futuras
+
+* 🔔 Notificações em tempo real
+* 📊 Estatísticas por região
+* 🤖 Classificação automática com IA
+* 🔥 Heatmap de ocorrências
+* 🎛️ Filtros avançados
+* 👤 Sistema de autenticação
+* 🚑 Alertas emergenciais
 
 ---
 
 # 👨‍💻 Equipe de Desenvolvimento
 
-* **Alan Araújo da Silveira**
-* **Fernanda Figueiredo**
-* **João Pedro Antunes**
-* **Matheus Barros Ferreira**
-* **Murilo Leone Fernandes**
-
----
-
-# 🚀 Melhorias Futuras
-
-* 🔔 Notificações em tempo real
-* 📊 Estatísticas por região
-* 🧠 Classificação automática de ocorrências com IA
-* 🗺️ Heatmap de violência
-* 🔍 Filtros por tipo de ocorrência
-* 👤 Sistema de contas de usuário
-* 📢 Alertas de emergência
+* Alan Araújo da Silveira
+* Fernanda Figueiredo
+* João Pedro Antunes
+* Matheus Barros Ferreira
+* Murilo Leone Fernandes
 
 ---
 
 # 📄 Licença
 
-Este projeto foi desenvolvido para **fins educacionais e acadêmicos**.
+Este projeto foi desenvolvido para fins acadêmicos e educacionais.
 
 ---
+
+# ⭐ Contribuição
+
+Contribuições são bem-vindas.
+
+Caso queira colaborar:
+
+```bash
+# Fork o projeto
+# Crie uma branch
+
+git checkout -b minha-feature
+
+# Commit das alterações
+
+git commit -m "feat: nova funcionalidade"
+
+# Push da branch
+
+git push origin minha-feature
+```
+
+Depois disso, abra um Pull Request.
