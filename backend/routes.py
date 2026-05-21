@@ -1,5 +1,6 @@
 import random
 import hashlib
+import smtplib
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -25,6 +26,27 @@ NEWS_IMAGE_URLS = {
     "amarelo": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=320&q=70",
     "verde": "https://images.unsplash.com/photo-1543059080-f9b1272213d5?auto=format&fit=crop&w=320&q=70",
 }
+
+
+def mail_error_response(context, error):
+    error_type = type(error).__name__
+    print(f"[{context}] erro ao enviar email ({error_type}): {error}")
+
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        message = "Falha de autenticacao no email. Confira MAIL_USERNAME e MAIL_PASSWORD no Render."
+    elif isinstance(error, smtplib.SMTPConnectError):
+        message = "Falha ao conectar no servidor SMTP. Confira MAIL_SERVER, MAIL_PORT, TLS e SSL."
+    elif isinstance(error, smtplib.SMTPRecipientsRefused):
+        message = "O servidor SMTP recusou o destinatario."
+    elif isinstance(error, smtplib.SMTPSenderRefused):
+        message = "O servidor SMTP recusou o remetente. Confira MAIL_USERNAME."
+    else:
+        message = "Erro ao enviar e-mail"
+
+    return {
+        "message": message,
+        "error": f"{error_type}: {error}",
+    }, 500
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -148,8 +170,7 @@ Equipe SPAlerta
             mail.send(msg)
             print(f"✅ Email enviado com sucesso para {email}")
         except Exception as e:
-            print(f"⚠️ Erro ao enviar email para {email}: {str(e)}")
-            # Continua mesmo se o email falhar - o usuário já foi criado
+            return mail_error_response("register", e)
 
         return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
 
@@ -237,8 +258,7 @@ def resend_otp():
         mail.send(msg)
         print(f"[resend_otp] email enviado para {email}")
     except Exception as e:
-        print(f"[resend_otp] erro ao enviar email para {email}: {e}")
-        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+        return mail_error_response("resend_otp", e)
 
     return {"message": "Novo código enviado com sucesso!"}, 200
 
@@ -324,8 +344,7 @@ Equipe AlertaSP
         mail.send(msg)
         print(f"[forgot_password] codigo enviado para {email}")
     except Exception as e:
-        print(f"[forgot_password] erro ao enviar email para {email}: {e}")
-        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+        return mail_error_response("forgot_password", e)
 
     return {"message": "Codigo enviado para seu e-mail."}, 200
 
