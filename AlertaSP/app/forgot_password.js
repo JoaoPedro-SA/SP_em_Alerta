@@ -45,7 +45,16 @@ export default function ForgotPassword() {
 
     try {
       const response = await api.post("/forgot-password", { email });
-      showAlert("Sucesso", response.data?.message || "Codigo enviado para seu e-mail.");
+      const testOtp = response.data?.test_otp;
+      const successMessage = testOtp
+        ? `${response.data?.message || "Codigo enviado para seu e-mail."}\n\nCodigo de teste: ${testOtp}`
+        : response.data?.message || "Codigo enviado para seu e-mail.";
+
+      if (testOtp) {
+        setOtp(testOtp);
+      }
+
+      showAlert("Sucesso", successMessage);
       setStep("reset");
     } catch (error) {
       showAlert("Erro", getApiErrorMessage(error, "Erro ao enviar codigo."));

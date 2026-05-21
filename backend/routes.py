@@ -58,21 +58,41 @@ def send_email_message(message, context):
 
 def send_resend_email(message, context):
     sender = current_app.config.get("RESEND_FROM_EMAIL") or message.sender
+    recipients = message.recipients
+    test_recipient = current_app.config.get("RESEND_TEST_RECIPIENT")
 
     if not sender:
         raise RuntimeError("RESEND_FROM_EMAIL ou MAIL_USERNAME precisa estar configurado")
 
+    subject = message.subject
+    html = message.html
+    body = message.body
+
+    if test_recipient:
+        original_recipients = ", ".join(recipients)
+        recipients = [test_recipient]
+        subject = f"[TESTE] {subject}"
+
+        if body:
+            body = f"Destinatario original: {original_recipients}\n\n{body}"
+
+        if html:
+            html = (
+                f"<p><strong>Destinatario original:</strong> {original_recipients}</p>"
+                f"{html}"
+            )
+
     payload = {
         "from": sender,
-        "to": message.recipients,
-        "subject": message.subject,
+        "to": recipients,
+        "subject": subject,
     }
 
-    if message.html:
-        payload["html"] = message.html
+    if html:
+        payload["html"] = html
 
-    if message.body:
-        payload["text"] = message.body
+    if body:
+        payload["text"] = body
 
     request_data = Request(
         "https://api.resend.com/emails",
@@ -93,6 +113,13 @@ def send_resend_email(message, context):
         raise RuntimeError(f"Resend API retornou {error.code}: {error_payload}") from error
 
     print(f"[{context}] email enviado via Resend: {response_payload}", flush=True)
+
+
+def test_otp_payload(otp):
+    if current_app.config.get("RESEND_TEST_RECIPIENT"):
+        return {"test_otp": otp}
+
+    return {}
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -218,7 +245,10 @@ Equipe SPAlerta
         except Exception as e:
             return mail_error_response("register", e)
 
-        return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+        return {
+            "message": "Conta criada! Verifique o código enviado ao seu e-mail.",
+            **test_otp_payload(otp),
+        }, 201
 
     except Exception as e:
         print(f"❌ Erro no registro: {str(e)}")
@@ -306,7 +336,10 @@ def resend_otp():
     except Exception as e:
         return mail_error_response("resend_otp", e)
 
-    return {"message": "Novo código enviado com sucesso!"}, 200
+    return {
+        "message": "Novo código enviado com sucesso!",
+        **test_otp_payload(otp),
+    }, 200
 
 # ================== LOGIN ==================
 
@@ -392,7 +425,10 @@ Equipe AlertaSP
     except Exception as e:
         return mail_error_response("forgot_password", e)
 
-    return {"message": "Codigo enviado para seu e-mail."}, 200
+    return {
+        "message": "Codigo enviado para seu e-mail.",
+        **test_otp_payload(otp),
+    }, 200
 
 
 @auth_bp.route("/reset-password", methods=["POST"])

@@ -42,3 +42,4 @@ class Config:
 
     RESEND_API_KEY = os.getenv("RESEND_API_KEY")
     RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL")
+    RESEND_TEST_RECIPIENT = os.getenv("RESEND_TEST_RECIPIENT")
