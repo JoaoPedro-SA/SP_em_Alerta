@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppBackground from "../components/AppBackground";
 import styles from "../styles/registerStyle";
-import api from "./src/services/api";
+import api from "../src/services/api";
 
 const webHoverProps = (onEnter, onLeave) =>
   Platform.OS === "web"

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Text, TextInput, TouchableOpacity, Alert, Platform, StyleSheet, ActivityIndicator, useWindowDimensions, View } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AppBackground from '../components/AppBackground';
-import api from './src/services/api';
+import api from '../src/services/api';
 
 const webHoverProps = (onEnter, onLeave) =>
     Platform.OS === "web"

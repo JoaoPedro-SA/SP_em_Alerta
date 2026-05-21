@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Image, Linking, Text, TouchableOpacity, View } from "react-native";
 import AppBackground from "../components/AppBackground";
-import api from "./src/services/api";
+import api from "../src/services/api";
 import styles from "../styles/homeStyle";
 
 const FALLBACK_NEWS = [
