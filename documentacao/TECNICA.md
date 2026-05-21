@@ -134,8 +134,20 @@ O sistema envia emails em cadastro, reenvio de OTP e recuperacao de senha.
 
 Existem dois modos:
 
+- **EmailJS API**: modo alternativo para apresentacao usando API HTTP.
 - **Resend API**: modo usado para apresentacao no Render free.
 - **SMTP Flask-Mail**: fallback local ou para hospedagem que permita SMTP.
+
+Quando `EMAILJS_SERVICE_ID` existe, o backend prioriza EmailJS. Se nao existir, tenta Resend. Se nenhum dos dois estiver configurado, usa SMTP.
+
+Variaveis usadas no modo EmailJS:
+
+```env
+EMAILJS_SERVICE_ID=
+EMAILJS_TEMPLATE_ID=
+EMAILJS_PUBLIC_KEY=
+EMAILJS_PRIVATE_KEY=
+```
 
 Variaveis usadas no modo Resend:
 
@@ -178,6 +190,10 @@ FRONTEND_URL=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 RESEND_TEST_RECIPIENT=
+EMAILJS_SERVICE_ID=
+EMAILJS_TEMPLATE_ID=
+EMAILJS_PUBLIC_KEY=
+EMAILJS_PRIVATE_KEY=
 FLASK_ENV=production
 PORT=5001
 ```

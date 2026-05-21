@@ -50,10 +50,75 @@ def mail_error_response(context, error):
 
 
 def send_email_message(message, context):
+    if current_app.config.get("EMAILJS_SERVICE_ID"):
+        return send_emailjs_email(message, context)
+
     if current_app.config.get("RESEND_API_KEY"):
         return send_resend_email(message, context)
 
     mail.send(message)
+
+
+def send_emailjs_email(message, context):
+    required_config = (
+        "EMAILJS_SERVICE_ID",
+        "EMAILJS_TEMPLATE_ID",
+        "EMAILJS_PUBLIC_KEY",
+    )
+    missing_config = [key for key in required_config if not current_app.config.get(key)]
+
+    if missing_config:
+        raise RuntimeError(f"Configuracao EmailJS ausente: {', '.join(missing_config)}")
+
+    recipients = message.recipients or []
+    recipient = recipients[0] if recipients else ""
+
+    if not recipient:
+        raise RuntimeError("EmailJS precisa de pelo menos um destinatario")
+
+    otp_match = re.search(r"\b\d{6}\b", message.body or "")
+    otp = otp_match.group(0) if otp_match else ""
+
+    payload = {
+        "service_id": current_app.config["EMAILJS_SERVICE_ID"],
+        "template_id": current_app.config["EMAILJS_TEMPLATE_ID"],
+        "user_id": current_app.config["EMAILJS_PUBLIC_KEY"],
+        "template_params": {
+            "to_email": recipient,
+            "email": recipient,
+            "recipient": recipient,
+            "subject": message.subject,
+            "message": message.body or "",
+            "text": message.body or "",
+            "html": message.html or "",
+            "otp": otp,
+            "code": otp,
+            "codigo": otp,
+            "from_name": "AlertaSP",
+        },
+    }
+
+    if current_app.config.get("EMAILJS_PRIVATE_KEY"):
+        payload["accessToken"] = current_app.config["EMAILJS_PRIVATE_KEY"]
+
+    request_data = Request(
+        "https://api.emailjs.com/api/v1.0/email/send",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "AlertaSP/1.0",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request_data, timeout=15) as response:
+            response_payload = response.read().decode("utf-8")
+    except HTTPError as error:
+        error_payload = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"EmailJS API retornou {error.code}: {error_payload}") from error
+
+    print(f"[{context}] email enviado via EmailJS: {response_payload}", flush=True)
 
 
 def send_resend_email(message, context):
@@ -116,7 +181,7 @@ def send_resend_email(message, context):
 
 
 def test_otp_payload(otp):
-    if current_app.config.get("RESEND_TEST_RECIPIENT"):
+    if current_app.config.get("RESEND_TEST_RECIPIENT") or current_app.config.get("EMAILJS_SERVICE_ID"):
         return {"test_otp": otp}
 
     return {}

@@ -6,10 +6,33 @@ Este backend envia emails para verificacao de conta, reenvio de OTP e recuperaca
 
 O projeto suporta dois modos de envio:
 
-1. **Resend API**: usado no Render para apresentacao, porque funciona por HTTPS e nao depende de portas SMTP.
-2. **SMTP Flask-Mail**: usado como fallback local, por exemplo com Gmail SMTP.
+1. **EmailJS API**: alternativa para apresentacao usando API HTTP.
+2. **Resend API**: usado no Render para apresentacao, porque funciona por HTTPS e nao depende de portas SMTP.
+3. **SMTP Flask-Mail**: usado como fallback local, por exemplo com Gmail SMTP.
 
-Quando `RESEND_API_KEY` existe no ambiente, o backend usa Resend. Se essa variavel nao existir, ele usa Flask-Mail/SMTP.
+Quando `EMAILJS_SERVICE_ID` existe no ambiente, o backend usa EmailJS. Se essa variavel nao existir e `RESEND_API_KEY` existir, usa Resend. Se nenhuma das duas existir, usa Flask-Mail/SMTP.
+
+## Variaveis do EmailJS
+
+Configure no Render:
+
+```env
+EMAILJS_SERVICE_ID=seu_service_id
+EMAILJS_TEMPLATE_ID=seu_template_id
+EMAILJS_PUBLIC_KEY=sua_public_key
+EMAILJS_PRIVATE_KEY=sua_private_key
+```
+
+O template do EmailJS deve aceitar variaveis como:
+
+```txt
+to_email
+subject
+message
+otp
+```
+
+O backend tambem envia `email`, `recipient`, `text`, `html`, `code`, `codigo` e `from_name` para facilitar ajustes no template.
 
 ## Variaveis do Resend
 
