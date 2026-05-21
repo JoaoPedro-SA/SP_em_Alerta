@@ -80,6 +80,7 @@ def send_resend_email(message, context):
         headers={
             "Authorization": f"Bearer {current_app.config['RESEND_API_KEY']}",
             "Content-Type": "application/json",
+            "User-Agent": "AlertaSP/1.0",
         },
         method="POST",
     )
