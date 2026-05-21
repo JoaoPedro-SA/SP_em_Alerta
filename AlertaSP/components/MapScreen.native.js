@@ -13,7 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
-import api from "../app/src/services/api";
+import api from "../src/services/api";
 import { TEST_ALERTS } from "../constants/testAlerts";
 
 const DEFAULT_COORDS = {

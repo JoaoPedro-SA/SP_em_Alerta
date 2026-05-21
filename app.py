@@ -24,10 +24,14 @@ cors_origins = [
     "http://127.0.0.1:8082",
 ]
 
-frontend_url = os.getenv("FRONTEND_URL")
+frontend_urls = [
+    os.getenv("FRONTEND_URL"),
+    *os.getenv("FRONTEND_URLS", "").split(","),
+]
 
-if frontend_url:
-    cors_origins.append(frontend_url)
+for frontend_url in frontend_urls:
+    if frontend_url:
+        cors_origins.append(frontend_url.strip().rstrip("/"))
 
 # Configurar CORS com múltiplas origens
 CORS(app, 

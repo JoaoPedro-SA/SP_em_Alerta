@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, Platform, useWindowDimensions } from "react-native";
-import api, { wakeUpApi } from "./src/services/api";
+import api, { wakeUpApi } from "../src/services/api";
 import AppBackground from "../components/AppBackground";
 import styles from "../styles/loginStyle";
 import { useState } from "react";
