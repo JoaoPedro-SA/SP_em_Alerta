@@ -1,90 +1,199 @@
-import React, {useState} from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  Platform,
+  useWindowDimensions
+} from "react-native";
 import { useRouter } from "expo-router";
-import{ Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import AppBackground from "../components/AppBackground";
 import styles from "../styles/registerStyle";
+import api from "./src/services/api";
 
-export default function Register(){
-    const router = useRouter();
+const webHoverProps = (onEnter, onLeave) =>
+  Platform.OS === "web"
+    ? {
+        onMouseEnter: onEnter,
+        onMouseLeave: onLeave,
+      }
+    : {};
 
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
+export default function Register() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [hover, setHover] = useState(false);
 
-    function handleRegister() {
-        if(!name || !email || !password || !confirmPassword){
-            Alert.alert("Erro", "Preencha todos os campos.");
-            return;
-        }
+  const { width } = useWindowDimensions();
+  const isDesktop = width > 768;
+  const isWeb = Platform.OS === "web";
 
-        if(password !== confirmPassword){
-            Alert.alert("Erro", "As senhas não coincidem.");
-            return;
-        }
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-        //integrar backend
-        Alert.alert("Sucesso", "Conta criada com sucesso!");
-
-        router.replace("/login");
-
+  function showAlert(title, message, buttons) {
+    if (isWeb) {
+      window.alert(`${title}\n\n${message}`);
+      if (buttons && buttons[0]?.onPress) {
+        buttons[0].onPress();
+      }
+    } else {
+      Alert.alert(title, message, buttons);
     }
-    return(
-        <LinearGradient 
-         colors={["#0d0000", "#2b0000", "#5a3a00"]}
-        style={styles.container}>
+  }
 
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                <Ionicons name="arrow-back-circle" size={28} color="#fff"/>
-            </TouchableOpacity>
+  async function handleRegister() {
+    if (!name || !email || !password || !confirmPassword) {
+      showAlert("Erro", "Preencha todos os campos.");
+      return;
+    }
 
-            
-            <Text style={styles.title}>Criar Conta</Text>
+    if (password !== confirmPassword) {
+      showAlert("Erro", "As senhas não coincidem.");
+      return;
+    }
 
-            <TextInput
-             style={styles.input}
-             placeholder="Nome"
-             value={name}
-             placeholderTextColor="#000000"
-             onChangeText={setName}
-            />
+    setLoading(true);
 
-            <TextInput
-             style={styles.input}
-             placeholder="Email"
-             value={email}
-             placeholderTextColor="#000000"
-             onChangeText={setEmail}
-            />
+    try {
+      const response = await api.post("/register", {
+        name,
+        email,
+        password,
+      });
 
-            <TextInput
-             style={styles.input}
-             placeholder="Senha"
-             value={password}
-             placeholderTextColor="#000000"
-             secureTextEntry
-             onChangeText={setPassword}
-            />
+      if (response.status === 201) {
+        showAlert(
+          "Sucesso",
+          "Conta criada! Verifique seu e-mail.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                router.push({
+                  pathname: "/otp_verify",
+                  params: { email: email }
+                });
+              }
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      if (!error.response) {
+        showAlert(
+          "Erro de Conexão",
+          "Não conseguimos conectar ao servidor."
+        );
+      } else if (error.response?.status === 400) {
+        showAlert("Erro", error.response?.data?.message || "Erro no cadastro.");
+      } else {
+        showAlert(
+          "Erro",
+          error.response?.data?.message || "Erro inesperado."
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
-            <TextInput
-             style={styles.input}
-             placeholder="Confirmar Senha"
-             value={confirmPassword}
-             placeholderTextColor="#000000"
-             secureTextEntry
-             onChangeText={setConfirmPassword}
-            />
+  return (
+    <AppBackground style={styles.container}>
+      <View
+        style={{
+          width: "100%",
+          maxWidth: isDesktop ? 420 : "100%",
+          alignSelf: "center",
+          padding: 20,
+          backgroundColor: "rgba(255,255,255,0.00)",
+          borderRadius: isDesktop ? 10 : 0,
+          borderWidth: isDesktop ? 1 : 0,
+          borderColor: "rgba(255,255,255,0.0)",
+          ...(isWeb && {
+            backdropFilter: "blur(10px)",
+          }),
+        }}
+      >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.push("/login")}
+        >
+          <Ionicons name="arrow-back-circle" size={50} color="#fff" />
+        </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
-                <Text style={styles.buttonText}>Bora Alertar!</Text>
-            </TouchableOpacity>
+        <Text style={[
+          styles.title,
+          { fontSize: isDesktop ? 26 : 22 }
+        ]}>
+          Criar Conta
+        </Text>
 
-            <TouchableOpacity style={styles.buttonLogin} onPress={() => router.replace("/login")}>
-                <Text style={styles.btnText}>Já Alerta? Entrar</Text>
-            </TouchableOpacity>
+        <TextInput
+          style={styles.input}
+          placeholder="Nome"
+          placeholderTextColor="#000000"
+          value={name}
+          onChangeText={setName}
+        />
 
-            
-        </LinearGradient>
-    )
-};
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#000000"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          placeholderTextColor="#000000"
+          value={password}
+          secureTextEntry
+          onChangeText={setPassword}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmar Senha"
+          placeholderTextColor="#000000"
+          value={confirmPassword}
+          secureTextEntry
+          onChangeText={setConfirmPassword}
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.button,
+            { padding: isDesktop ? 15 : 12 },
+            hover && isWeb ? { opacity: 0.8 } : null,
+            loading && styles.buttonDisabled
+          ]}
+          {...webHoverProps(() => setHover(true), () => setHover(false))}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? "Cadastrando..." : "Bora Alertar!"}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.buttonLogin}
+          onPress={() => router.push("/login")}
+          disabled={loading}
+        >
+          <Text style={styles.btnText}>Já Alerta? Entrar</Text>
+        </TouchableOpacity>
+      </View>
+    </AppBackground>
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { View, Text, StyleSheet, Image, Animated } from "react-native";
+import { Animated } from "react-native";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient"
+import AppBackground from "../components/AppBackground";
 import styles from "../styles/splashStyle";
 
 export default function Splash() {
@@ -11,7 +11,7 @@ export default function Splash() {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-        Animated.parallel([
+    Animated.parallel([
       Animated.timing(scale, {
         toValue: 1,
         duration: 1600,
@@ -25,24 +25,19 @@ export default function Splash() {
     ]).start();
 
     const timer = setTimeout(() => {
-      router.replace("/login")
-    }, 3200)
+      router.replace("/login");
+    }, 3200);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [opacity, router, scale]);
 
   return (
-    <LinearGradient 
-    colors={["#0d0000", "#2b0000", "#5a3a00"]} 
-    style={styles.container}>
-
-
+    <AppBackground style={styles.container}>
       <Animated.Image
         source={require("../assets/images/logo(1).png")}
-        style={[styles.logo, {transform: [{ scale}], opacity}, ]}
+        style={[styles.logo, { transform: [{ scale }], opacity }]}
         resizeMode="contain"
       />
-
-    </LinearGradient>
+    </AppBackground>
   );
 }

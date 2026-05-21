@@ -1,0 +1,9 @@
+Flask
+Flask-SQLAlchemy
+Flask-Mail
+Flask-CORS
+Werkzeug
+itsdangerous
+psycopg2-binary
+gunicorn
+python-dotenv
