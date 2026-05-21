@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { View, Text, TextInput, TouchableOpacity, Platform, useWindowDimensions } from "react-native";
-import api from "./src/services/api";
+import api, { wakeUpApi } from "../src/services/api";
 import AppBackground from "../components/AppBackground";
 import styles from "../styles/loginStyle";
 import { useState } from "react";
@@ -17,6 +17,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [hover, setHover] = useState(false);
+  const [loading, setLoading] = useState(false);
 
 
   const router = useRouter();
@@ -25,7 +26,14 @@ export default function Login() {
   const isDesktop = width >= 768;
   const isWeb = Platform.OS === 'web'
   async function handleLogin() {
+    if (loading) {
+      return;
+    }
+
+    setLoading(true);
+
     try {
+      await wakeUpApi();
       await api.post("/login", {
         email,
         password,
@@ -35,10 +43,16 @@ export default function Login() {
       router.replace("/home");
 
     } catch (error) {
+      const isTimeout = error.code === "ECONNABORTED";
+
       alert(
         error.response?.data?.message ||
-        "Erro ao conectar com o servidor."
+        (isTimeout
+          ? "Servidor ainda esta acordando. Tente novamente em alguns segundos."
+          : "Erro ao conectar com o servidor.")
       );
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -89,9 +103,10 @@ export default function Login() {
             hover && isWeb ? { opacity: 0.8 } : null
           ]}
           {...webHoverProps(() => setHover(true), () => setHover(false))}
+          disabled={loading}
           onPress={handleLogin}
         >
-          <Text style={styles.buttonText}>Entrar</Text>
+          <Text style={styles.buttonText}>{loading ? "Entrando..." : "Entrar"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push("/forgot_password")}>

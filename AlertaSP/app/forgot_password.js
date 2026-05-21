@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Alert, Platform, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import { useRouter } from "expo-router";
 import AppBackground from "../components/AppBackground";
-import api from "./src/services/api";
+import api from "../src/services/api";
 import styles from "../styles/forgotPasswordStyle";
 
 function showAlert(title, message) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import styles from "../styles/map_webStyle";
-import api from "../app/src/services/api";
+import api from "../src/services/api";
 import { TEST_ALERTS } from "../constants/testAlerts";
 
 const DEFAULT_COORDS = {
