@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert as NativeAlert,
@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { useRouter } from "expo-router";
-import MapView, { Marker } from "react-native-maps";
+import { WebView } from "react-native-webview";
 import * as Location from "expo-location";
 import api from "../app/src/services/api";
 import { TEST_ALERTS } from "../constants/testAlerts";
@@ -19,11 +19,6 @@ import { TEST_ALERTS } from "../constants/testAlerts";
 const DEFAULT_COORDS = {
   latitude: -23.55052,
   longitude: -46.633309,
-};
-
-const DEFAULT_DELTA = {
-  latitudeDelta: 0.03,
-  longitudeDelta: 0.03,
 };
 
 const EARTH_RADIUS_KM = 6371;
@@ -61,37 +56,157 @@ function formatAlertLocation(alert) {
   return `${alert.latitude.toFixed(6)}, ${alert.longitude.toFixed(6)}`;
 }
 
-function formatPublishedAt(value) {
-  if (!value) {
-    return "";
-  }
+function buildLeafletMapHtml(alerts, userLocation, draftLocation, isStreetLoading) {
+  const center = draftLocation || userLocation || alerts[0] || DEFAULT_COORDS;
+  const alertJson = JSON.stringify(alerts).replace(/</g, "\\u003c");
+  const userJson = JSON.stringify(userLocation || DEFAULT_COORDS).replace(/</g, "\\u003c");
+  const draftJson = JSON.stringify(draftLocation || null).replace(/</g, "\\u003c");
 
-  const date = new Date(value);
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body, #map { height: 100%; margin: 0; background: #111; }
+    .leaflet-popup-content { margin: 10px 12px; line-height: 1.35; }
+    .fallback {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #111;
+    }
+    .dot {
+      border-radius: 999px;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 5px rgba(0,0,0,.4);
+    }
+    .alert-dot { background: #1e90ff; }
+    .draft-dot { background: #ff3b30; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+  <script>
+    const alerts = ${alertJson};
+    const userLocation = ${userJson};
+    const draftLocation = ${draftJson};
+    const streetLoading = ${JSON.stringify(Boolean(isStreetLoading))};
 
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+    function postMessage(payload) {
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+      }
+    }
 
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
+    function escapeHtml(value) {
+      return String(value || "").replace(/[&<>"']/g, function (char) {
+        return {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;"
+        }[char];
+      });
+    }
 
-function getPublishedDisplay(alert) {
-  const publishedAt = formatPublishedAt(alert?.created_at || alert?.createdAt);
-  return publishedAt ? `Publicado em: ${publishedAt}` : "";
-}
+    function popupContent(title, description, subtitle) {
+      return "<strong>" + escapeHtml(title || "Alerta") + "</strong><br>" +
+        escapeHtml(description || "Sem descricao") +
+        (subtitle ? "<br><small>" + escapeHtml(subtitle) + "</small>" : "");
+    }
 
-function getMarkerDescription(alert) {
-  return [
-    getAlertStreet(alert),
-    alert.description || "Sem descricao",
-    getPublishedDisplay(alert),
-  ].filter(Boolean).join(" - ");
+    function initMap() {
+      if (!window.L) {
+        document.getElementById("map").innerHTML =
+          '<div class="fallback">Nao foi possivel carregar o mapa. Verifique sua internet e tente novamente.</div>';
+        return;
+      }
+
+      const map = L.map("map", {
+        center: [${center.latitude}, ${center.longitude}],
+        zoom: 13,
+        zoomControl: true
+      });
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }).addTo(map);
+
+      const bounds = [];
+      const alertIcon = L.divIcon({
+        className: "dot alert-dot",
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+        popupAnchor: [0, -9]
+      });
+      const draftIcon = L.divIcon({
+        className: "dot draft-dot",
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -10]
+      });
+
+      if (userLocation) {
+        L.circleMarker([userLocation.latitude, userLocation.longitude], {
+          radius: 8,
+          color: "#ffffff",
+          weight: 2,
+          fillColor: "#29b35b",
+          fillOpacity: 1
+        }).addTo(map).bindPopup("Voce esta aqui");
+        bounds.push([userLocation.latitude, userLocation.longitude]);
+      }
+
+      alerts.forEach(function (alert) {
+        const latitude = Number(alert.latitude);
+        const longitude = Number(alert.longitude);
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return;
+        }
+
+        L.marker([latitude, longitude], { icon: alertIcon, title: alert.title || "Alerta" })
+          .addTo(map)
+          .bindPopup(popupContent(alert.title, alert.description, alert.street_name || alert.streetName));
+        bounds.push([latitude, longitude]);
+      });
+
+      if (draftLocation) {
+        L.marker([draftLocation.latitude, draftLocation.longitude], { icon: draftIcon, title: "Novo alerta" })
+          .addTo(map)
+          .bindPopup(streetLoading ? "Buscando rua..." : popupContent("Novo alerta", "", draftLocation.street_name))
+          .openPopup();
+        bounds.push([draftLocation.latitude, draftLocation.longitude]);
+      }
+
+      if (bounds.length > 1 && !draftLocation) {
+        map.fitBounds(bounds, { padding: [32, 32] });
+      }
+
+      map.on("click", function (event) {
+        postMessage({
+          type: "map-press",
+          latitude: event.latlng.lat,
+          longitude: event.latlng.lng
+        });
+      });
+    }
+
+    initMap();
+  <\/script>
+</body>
+</html>`;
 }
 
 function toRadians(value) {
@@ -269,9 +384,19 @@ export default function MapScreen() {
     setStreetLoading(false);
   }
 
-  function handleMapPress(event) {
-    const { latitude, longitude } = event.nativeEvent.coordinate;
-    selectDraftLocation({ latitude, longitude });
+  function handleMapMessage(event) {
+    try {
+      const payload = JSON.parse(event.nativeEvent.data);
+
+      if (payload?.type === "map-press") {
+        selectDraftLocation({
+          latitude: Number(payload.latitude),
+          longitude: Number(payload.longitude),
+        });
+      }
+    } catch (error) {
+      console.log("Mensagem invalida do mapa:", error);
+    }
   }
 
   function useCurrentLocation() {
@@ -328,6 +453,12 @@ export default function MapScreen() {
     }
   }
 
+  const nearbyAlerts = getNearbyAlerts(alerts, location || DEFAULT_COORDS);
+  const mapHtml = useMemo(
+    () => buildLeafletMapHtml(nearbyAlerts, location || DEFAULT_COORDS, draftLocation, streetLoading),
+    [nearbyAlerts, location, draftLocation, streetLoading]
+  );
+
   if (!location) {
     return (
       <View style={styles.center}>
@@ -337,51 +468,17 @@ export default function MapScreen() {
     );
   }
 
-  const nearbyAlerts = getNearbyAlerts(alerts, location);
-
   return (
     <View style={styles.screen}>
-      <MapView
+      <WebView
         style={styles.map}
-        initialRegion={{
-          latitude: location.latitude,
-          longitude: location.longitude,
-          ...DEFAULT_DELTA,
-        }}
-        onPress={handleMapPress}
-        showsUserLocation
-        showsMyLocationButton
-      >
-        <Marker
-          coordinate={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-          }}
-          title="Voce esta aqui"
-        />
-
-        {nearbyAlerts.map((alert) => (
-          <Marker
-            key={alert.id}
-            coordinate={{
-              latitude: alert.latitude,
-              longitude: alert.longitude,
-            }}
-            title={alert.title || "Alerta"}
-            description={getMarkerDescription(alert)}
-            pinColor="#1e90ff"
-          />
-        ))}
-
-        {draftLocation && (
-          <Marker
-            coordinate={draftLocation}
-            title="Novo alerta"
-            description={streetLoading ? "Buscando rua..." : formatAlertLocation(draftLocation)}
-            pinColor="#ff3b30"
-          />
-        )}
-      </MapView>
+        source={{ html: mapHtml }}
+        originWhitelist={["*"]}
+        javaScriptEnabled
+        domStorageEnabled
+        geolocationEnabled
+        onMessage={handleMapMessage}
+      />
 
       <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/home")}>
         <Text style={styles.backButtonText}>Voltar</Text>

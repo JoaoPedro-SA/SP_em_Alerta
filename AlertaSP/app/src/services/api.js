@@ -1,24 +1,39 @@
 import axios from "axios";
-import { Platform } from "react-native";
+
+const DEFAULT_API_URL = "https://sp-em-alerta-27yd.onrender.com";
+const DEFAULT_TIMEOUT = 60000;
 
 function getApiUrl() {
     if (process.env.EXPO_PUBLIC_API_URL) {
-        return process.env.EXPO_PUBLIC_API_URL;
+        return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, "");
     }
 
-    if (Platform.OS === "web" && typeof window !== "undefined") {
-        return `${window.location.protocol}//${window.location.hostname}:5001`;
-    }
-
-    return "http://192.168.15.25:5001";
+    return DEFAULT_API_URL;
 }
 
 const api = axios.create({
     baseURL: getApiUrl(),
-    timeout: 8000,
+    timeout: DEFAULT_TIMEOUT,
     headers: {
         "Content-Type": "application/json",
     },
 });
+
+let wakeUpPromise = null;
+
+export function wakeUpApi() {
+    if (!wakeUpPromise) {
+        wakeUpPromise = api
+            .get("/health", { timeout: DEFAULT_TIMEOUT })
+            .catch((error) => {
+                console.log("Render wake-up failed:", error?.message || error);
+            })
+            .finally(() => {
+                wakeUpPromise = null;
+            });
+    }
+
+    return wakeUpPromise;
+}
 
 export default api;
