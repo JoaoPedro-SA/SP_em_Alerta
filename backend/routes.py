@@ -30,7 +30,7 @@ NEWS_IMAGE_URLS = {
 
 def mail_error_response(context, error):
     error_type = type(error).__name__
-    print(f"[{context}] erro ao enviar email ({error_type}): {error}")
+    print(f"[{context}] erro ao enviar email ({error_type}): {error}", flush=True)
 
     if isinstance(error, smtplib.SMTPAuthenticationError):
         message = "Falha de autenticacao no email. Confira MAIL_USERNAME e MAIL_PASSWORD no Render."
@@ -47,6 +47,51 @@ def mail_error_response(context, error):
         "message": message,
         "error": f"{error_type}: {error}",
     }, 500
+
+
+def send_email_message(message, context):
+    if current_app.config.get("RESEND_API_KEY"):
+        return send_resend_email(message, context)
+
+    mail.send(message)
+
+
+def send_resend_email(message, context):
+    sender = current_app.config.get("RESEND_FROM_EMAIL") or message.sender
+
+    if not sender:
+        raise RuntimeError("RESEND_FROM_EMAIL ou MAIL_USERNAME precisa estar configurado")
+
+    payload = {
+        "from": sender,
+        "to": message.recipients,
+        "subject": message.subject,
+    }
+
+    if message.html:
+        payload["html"] = message.html
+
+    if message.body:
+        payload["text"] = message.body
+
+    request_data = Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {current_app.config['RESEND_API_KEY']}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request_data, timeout=15) as response:
+            response_payload = response.read().decode("utf-8")
+    except HTTPError as error:
+        error_payload = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Resend API retornou {error.code}: {error_payload}") from error
+
+    print(f"[{context}] email enviado via Resend: {response_payload}", flush=True)
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -167,7 +212,7 @@ Equipe SPAlerta
 """
 
         try:
-            mail.send(msg)
+            send_email_message(msg, "register")
             print(f"✅ Email enviado com sucesso para {email}")
         except Exception as e:
             return mail_error_response("register", e)
@@ -255,7 +300,7 @@ def resend_otp():
     msg.body = f"Seu novo código de confirmação é: {otp}\nEle expira em 10 minutos."
     
     try:
-        mail.send(msg)
+        send_email_message(msg, "resend_otp")
         print(f"[resend_otp] email enviado para {email}")
     except Exception as e:
         return mail_error_response("resend_otp", e)
@@ -341,7 +386,7 @@ Equipe AlertaSP
 """
 
     try:
-        mail.send(msg)
+        send_email_message(msg, "forgot_password")
         print(f"[forgot_password] codigo enviado para {email}")
     except Exception as e:
         return mail_error_response("forgot_password", e)

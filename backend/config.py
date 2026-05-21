@@ -39,3 +39,6 @@ class Config:
     MAIL_USERNAME = os.getenv("MAIL_USERNAME", "").strip() or None
     MAIL_PASSWORD = mail_password()
     MAIL_DEFAULT_SENDER = MAIL_USERNAME
+
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+    RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL")
