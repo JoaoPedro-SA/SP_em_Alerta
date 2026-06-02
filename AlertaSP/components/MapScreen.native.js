@@ -226,9 +226,9 @@ function getDistanceInKm(origin, target) {
   const halfChordLength =
     Math.sin(latitudeDistance / 2) * Math.sin(latitudeDistance / 2) +
     Math.cos(originLatitude) *
-      Math.cos(targetLatitude) *
-      Math.sin(longitudeDistance / 2) *
-      Math.sin(longitudeDistance / 2);
+    Math.cos(targetLatitude) *
+    Math.sin(longitudeDistance / 2) *
+    Math.sin(longitudeDistance / 2);
 
   return 2 * EARTH_RADIUS_KM * Math.atan2(Math.sqrt(halfChordLength), Math.sqrt(1 - halfChordLength));
 }
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: 50,
     padding: 14,
   },
   panel: {
