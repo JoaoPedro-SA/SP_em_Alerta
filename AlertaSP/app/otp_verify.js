@@ -179,6 +179,9 @@ export default function OtpVerify() {
                     placeholder="000000"
                     placeholderTextColor="#999"
                     keyboardType="number-pad"
+                    autoComplete="off"
+                    textContentType="none"
+                    importantForAutofill="no"
                     maxLength={6}
                     value={otp}
                     onChangeText={setOtp}

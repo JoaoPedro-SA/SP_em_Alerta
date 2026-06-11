@@ -45,14 +45,7 @@ export default function ForgotPassword() {
 
     try {
       const response = await api.post("/forgot-password", { email });
-      const testOtp = response.data?.test_otp;
-      const successMessage = testOtp
-        ? `${response.data?.message || "Codigo enviado para seu e-mail."}\n\nCodigo de teste: ${testOtp}`
-        : response.data?.message || "Codigo enviado para seu e-mail.";
-
-      if (testOtp) {
-        setOtp(testOtp);
-      }
+      const successMessage = response.data?.message || "Codigo enviado para seu e-mail.";
 
       showAlert("Sucesso", successMessage);
       setStep("reset");
@@ -122,6 +115,9 @@ export default function ForgotPassword() {
               value={otp}
               onChangeText={setOtp}
               keyboardType="number-pad"
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
               maxLength={6}
             />
             <TextInput
