@@ -1,5 +1,6 @@
 import random
 import hashlib
+import smtplib
 import json
 import re
 import xml.etree.ElementTree as ET
@@ -25,6 +26,173 @@ NEWS_IMAGE_URLS = {
     "amarelo": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=320&q=70",
     "verde": "https://images.unsplash.com/photo-1543059080-f9b1272213d5?auto=format&fit=crop&w=320&q=70",
 }
+
+
+def mail_error_response(context, error):
+    error_type = type(error).__name__
+    print(f"[{context}] erro ao enviar email ({error_type}): {error}", flush=True)
+
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        message = "Falha de autenticacao no email. Confira MAIL_USERNAME e MAIL_PASSWORD no Render."
+    elif isinstance(error, smtplib.SMTPConnectError):
+        message = "Falha ao conectar no servidor SMTP. Confira MAIL_SERVER, MAIL_PORT, TLS e SSL."
+    elif isinstance(error, smtplib.SMTPRecipientsRefused):
+        message = "O servidor SMTP recusou o destinatario."
+    elif isinstance(error, smtplib.SMTPSenderRefused):
+        message = "O servidor SMTP recusou o remetente. Confira MAIL_USERNAME."
+    else:
+        message = "Erro ao enviar e-mail"
+
+    return {
+        "message": message,
+        "error": f"{error_type}: {error}",
+    }, 500
+
+
+def send_email_message(message, context):
+    if current_app.config.get("EMAILJS_SERVICE_ID"):
+        return send_emailjs_email(message, context)
+
+    if current_app.config.get("RESEND_API_KEY"):
+        return send_resend_email(message, context)
+
+    mail.send(message)
+
+
+def send_emailjs_email(message, context):
+    required_config = (
+        "EMAILJS_SERVICE_ID",
+        "EMAILJS_TEMPLATE_ID",
+        "EMAILJS_PUBLIC_KEY",
+    )
+    missing_config = [key for key in required_config if not current_app.config.get(key)]
+
+    if missing_config:
+        raise RuntimeError(f"Configuracao EmailJS ausente: {', '.join(missing_config)}")
+
+    recipients = message.recipients or []
+    recipient = recipients[0] if recipients else ""
+
+    if not recipient:
+        raise RuntimeError("EmailJS precisa de pelo menos um destinatario")
+
+    otp_match = re.search(r"\b\d{6}\b", message.body or "")
+    otp = otp_match.group(0) if otp_match else ""
+
+    payload = {
+        "service_id": current_app.config["EMAILJS_SERVICE_ID"],
+        "template_id": current_app.config["EMAILJS_TEMPLATE_ID"],
+        "user_id": current_app.config["EMAILJS_PUBLIC_KEY"],
+        "template_params": {
+            "to_email": recipient,
+            "email": recipient,
+            "recipient": recipient,
+            "subject": message.subject,
+            "message": message.body or "",
+            "text": message.body or "",
+            "html": message.html or "",
+            "otp": otp,
+            "code": otp,
+            "codigo": otp,
+            "passcode": otp,
+            "otp_code": otp,
+            "verification_code": otp,
+            "one_time_password": otp,
+            "company_name": "AlertaSP",
+            "app_name": "AlertaSP",
+            "expires_in": "10 minutos",
+            "time": "10 minutos",
+            "from_name": "AlertaSP",
+        },
+    }
+
+    if current_app.config.get("EMAILJS_PRIVATE_KEY"):
+        payload["accessToken"] = current_app.config["EMAILJS_PRIVATE_KEY"]
+
+    request_data = Request(
+        "https://api.emailjs.com/api/v1.0/email/send",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "User-Agent": "AlertaSP/1.0",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request_data, timeout=15) as response:
+            response_payload = response.read().decode("utf-8")
+    except HTTPError as error:
+        error_payload = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"EmailJS API retornou {error.code}: {error_payload}") from error
+
+    print(f"[{context}] email enviado via EmailJS: {response_payload}", flush=True)
+
+
+def send_resend_email(message, context):
+    sender = current_app.config.get("RESEND_FROM_EMAIL") or message.sender
+    recipients = message.recipients
+    test_recipient = current_app.config.get("RESEND_TEST_RECIPIENT")
+
+    if not sender:
+        raise RuntimeError("RESEND_FROM_EMAIL ou MAIL_USERNAME precisa estar configurado")
+
+    subject = message.subject
+    html = message.html
+    body = message.body
+
+    if test_recipient:
+        original_recipients = ", ".join(recipients)
+        recipients = [test_recipient]
+        subject = f"[TESTE] {subject}"
+
+        if body:
+            body = f"Destinatario original: {original_recipients}\n\n{body}"
+
+        if html:
+            html = (
+                f"<p><strong>Destinatario original:</strong> {original_recipients}</p>"
+                f"{html}"
+            )
+
+    payload = {
+        "from": sender,
+        "to": recipients,
+        "subject": subject,
+    }
+
+    if html:
+        payload["html"] = html
+
+    if body:
+        payload["text"] = body
+
+    request_data = Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {current_app.config['RESEND_API_KEY']}",
+            "Content-Type": "application/json",
+            "User-Agent": "AlertaSP/1.0",
+        },
+        method="POST",
+    )
+
+    try:
+        with urlopen(request_data, timeout=15) as response:
+            response_payload = response.read().decode("utf-8")
+    except HTTPError as error:
+        error_payload = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"Resend API retornou {error.code}: {error_payload}") from error
+
+    print(f"[{context}] email enviado via Resend: {response_payload}", flush=True)
+
+
+def test_otp_payload(otp):
+    if current_app.config.get("RESEND_TEST_RECIPIENT") or current_app.config.get("EMAILJS_SERVICE_ID"):
+        return {"test_otp": otp}
+
+    return {}
 
 # ===== FUNÇÃO AUXILIAR PARA GERAR OTP =====
 
@@ -145,13 +313,15 @@ Equipe SPAlerta
 """
 
         try:
-            mail.send(msg)
+            send_email_message(msg, "register")
             print(f"✅ Email enviado com sucesso para {email}")
         except Exception as e:
-            print(f"⚠️ Erro ao enviar email para {email}: {str(e)}")
-            # Continua mesmo se o email falhar - o usuário já foi criado
+            return mail_error_response("register", e)
 
-        return {"message": "Conta criada! Verifique o código enviado ao seu e-mail."}, 201
+        return {
+            "message": "Conta criada! Verifique o código enviado ao seu e-mail.",
+            **test_otp_payload(otp),
+        }, 201
 
     except Exception as e:
         print(f"❌ Erro no registro: {str(e)}")
@@ -234,13 +404,15 @@ def resend_otp():
     msg.body = f"Seu novo código de confirmação é: {otp}\nEle expira em 10 minutos."
     
     try:
-        mail.send(msg)
+        send_email_message(msg, "resend_otp")
         print(f"[resend_otp] email enviado para {email}")
     except Exception as e:
-        print(f"[resend_otp] erro ao enviar email para {email}: {e}")
-        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+        return mail_error_response("resend_otp", e)
 
-    return {"message": "Novo código enviado com sucesso!"}, 200
+    return {
+        "message": "Novo código enviado com sucesso!",
+        **test_otp_payload(otp),
+    }, 200
 
 # ================== LOGIN ==================
 
@@ -321,13 +493,15 @@ Equipe AlertaSP
 """
 
     try:
-        mail.send(msg)
+        send_email_message(msg, "forgot_password")
         print(f"[forgot_password] codigo enviado para {email}")
     except Exception as e:
-        print(f"[forgot_password] erro ao enviar email para {email}: {e}")
-        return {"message": "Erro ao enviar e-mail", "error": str(e)}, 500
+        return mail_error_response("forgot_password", e)
 
-    return {"message": "Codigo enviado para seu e-mail."}, 200
+    return {
+        "message": "Codigo enviado para seu e-mail.",
+        **test_otp_payload(otp),
+    }, 200
 
 
 @auth_bp.route("/reset-password", methods=["POST"])

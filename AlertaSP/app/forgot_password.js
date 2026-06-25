@@ -13,6 +13,17 @@ function showAlert(title, message) {
   }
 }
 
+function getApiErrorMessage(error, fallback) {
+  const data = error.response?.data;
+  const details = data?.error || data?.details;
+
+  if (data?.message && details) {
+    return `${data.message}\n\nDetalhes: ${details}`;
+  }
+
+  return data?.message || error.message || fallback;
+}
+
 export default function ForgotPassword() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -34,10 +45,12 @@ export default function ForgotPassword() {
 
     try {
       const response = await api.post("/forgot-password", { email });
-      showAlert("Sucesso", response.data?.message || "Codigo enviado para seu e-mail.");
+      const successMessage = response.data?.message || "Codigo enviado para seu e-mail.";
+
+      showAlert("Sucesso", successMessage);
       setStep("reset");
     } catch (error) {
-      showAlert("Erro", error.response?.data?.message || "Erro ao enviar codigo.");
+      showAlert("Erro", getApiErrorMessage(error, "Erro ao enviar codigo."));
     } finally {
       setLoading(false);
     }
@@ -66,7 +79,7 @@ export default function ForgotPassword() {
       showAlert("Sucesso", response.data?.message || "Senha redefinida com sucesso.");
       router.replace("/login");
     } catch (error) {
-      showAlert("Erro", error.response?.data?.message || "Erro ao redefinir senha.");
+      showAlert("Erro", getApiErrorMessage(error, "Erro ao redefinir senha."));
     } finally {
       setLoading(false);
     }
@@ -102,6 +115,9 @@ export default function ForgotPassword() {
               value={otp}
               onChangeText={setOtp}
               keyboardType="number-pad"
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
               maxLength={6}
             />
             <TextInput
