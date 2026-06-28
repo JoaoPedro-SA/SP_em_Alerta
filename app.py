@@ -11,7 +11,7 @@ from backend import create_app
 from backend.extensions import db
 
 app = create_app()
-APK_PATH = Path(__file__).resolve().parent / "downloads" / "AlertaSP-arm64-release.apk"
+APK_PATH = Path(__file__).resolve().parent / "downloads" / "AlertaSP-arm64-release(1).apk"
 
 cors_origins = [
     "http://localhost:19006",
