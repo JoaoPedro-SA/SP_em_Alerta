@@ -11,7 +11,7 @@ from backend import create_app
 from backend.extensions import db
 
 app = create_app()
-APK_PATH = Path(__file__).resolve().parent / "downloads" / "AlertaSP-arm64-release.apk"
+APK_PATH = Path(__file__).resolve().parent / "downloads" / "application-f5320877-f89e-4a44-9f7d-d15e2d45ffc5.apk"
 
 cors_origins = [
     "http://localhost:19006",
@@ -125,7 +125,7 @@ def download_app():
 
     return send_file(
         APK_PATH,
-        mimetype="application/vnd.android.package-archive",
+        mimetype="application-f5320877-f89e-4a44-9f7d-d15e2d45ffc5",
         as_attachment=True,
         download_name="AlertaSP-arm64-release.apk",
     )
